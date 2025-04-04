@@ -3,7 +3,7 @@ import { registry } from "../tools/registry"
 import { auth0 } from "@/lib/auth0"
 import { notFound } from "next/navigation";
 import { manage } from "@/lib/auth0-manage";
-import { ToolSetInfo } from "../tools/toolset";
+import { TOOLSET_TYPE, ToolSetInfo } from "../tools/toolset";
 import MCPDiscovery from "./new/mcp-discover";
 
 export default async function Home() {
@@ -41,7 +41,29 @@ export default async function Home() {
 
   console.log(toolsets);
   
-  const customMcp = (userObject.app_metadata || {}).custom_mcp || [];
+  const customMcp = ((userObject.app_metadata || {}).custom_mcp || []).map((mcpServerConnectionName: string) => {
+    const identity = userObject.identities.find((identity) => identity.connection === mcpServerConnectionName);
+
+    const mapped: ToolSetInfo & ({ installed: false } | { installed: true, profileData: any}) = {
+      connectionName: mcpServerConnectionName,
+      connectionScopes: [],
+      contributedBy: "You",
+      description: "your own custom mcp server",
+      icon: "/icons/Google.png",
+      installed: false,
+      name: "Custom MCP",
+      type: TOOLSET_TYPE.MCP_SERVER
+    };
+
+    if (identity !== undefined) {
+      // @ts-ignore
+      mapped.installed = true;
+      // @ts-ignore
+      mapped.profileData = identity.profileData;
+    }
+
+    return mapped;
+  });
 
   return (
     <main className="container mx-auto py-10 px-4 space-y-16">
@@ -52,7 +74,7 @@ export default async function Home() {
 
       <h2 className="text-3xl font-bold mb-6">Custom Tools</h2>
       <p className="text-muted-foreground mb-8">Add any MCP Server, or Manange Existing ones</p>
-      <ToolCards toolsets={[]} />
+      <ToolCards toolsets={customMcp} />
 
       {customMcp.length < 3 && <MCPDiscovery />}
     </main>

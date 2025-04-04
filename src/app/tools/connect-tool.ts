@@ -6,7 +6,7 @@ import { ToolSetInfo } from "./toolset";
  * @param toolsetInfo 
  * @returns 
  */
-export async function requestAccessTo(toolsetInfo: ToolSetInfo) {
+export async function requestAccessTo(toolsetInfo: Pick<ToolSetInfo, 'connectionName'|'connectionScopes'>) {
     const session = await auth0.getSession();
     
     if (session === null) {

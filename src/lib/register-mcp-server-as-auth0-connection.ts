@@ -208,13 +208,15 @@ async function performDiscovery(
 
   if (response.status === 401) {
     if (method === "#195") {
-      return performWW;
+      return performWWWAuthenticateDiscovery(response);
     }
 
     if (method === "draft") {
       return performDiscoveryCurrentDraft(serverAddress);
     }
   }
+
+  throw new Error("Unsupported discovery");
 }
 
 /**
@@ -366,10 +368,15 @@ async function createAuth0CustomSocialConnection(
  */
 export async function registerMcpAndCreateAuth0Connection(
   mcpUrl: string,
+  method: string,
   ownerSub: string
 ) {
-  const authBase = getAuthorizationBaseUrl(mcpUrl);
-  const issuer = await discoverOrFallback(authBase);
+  const issuer = await performDiscovery(mcpUrl, method as any);
+
+  if (!issuer) {
+    throw new Error("Discovery Failed");
+  }
+
   const client = issuer.clientMetadata();
   const server = issuer.serverMetadata();
 

@@ -15,6 +15,13 @@ export async function GET(request: NextRequest) {
         });
     }
 
+    if (toolName.startsWith("mcp-")) {
+        return requestAccessTo({
+            connectionName: toolName,
+            connectionScopes: [],
+        })
+    }
+
     if (!Object.keys(registry).includes(toolName)) {
         return new NextResponse("Unknown Tool", {
             status: 404,
@@ -22,5 +29,7 @@ export async function GET(request: NextRequest) {
         });
     }
 
-    return requestAccessTo(registry[toolName]);
+    return requestAccessTo(
+        registry[toolName]
+    );
 }

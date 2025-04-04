@@ -15,7 +15,12 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { discoverMCPTools } from "./actions";
 import { Select } from "@radix-ui/react-select";
-import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 /**
  *
@@ -26,7 +31,9 @@ export default function MCPDiscovery() {
   const [tools, setTools] = useState<Record<string, any> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [authzNegotationMethod, setAuthzNegotiationMethod] = useState<"draft"|"#195">("draft");
+  const [authzNegotationMethod, setAuthzNegotiationMethod] = useState<
+    "draft" | "#195"
+  >("draft");
   const [url, setUrl] = useState("");
 
   const [logs, setLogs] = useState<Array<{ type: string; message: string }>>(
@@ -129,99 +136,102 @@ export default function MCPDiscovery() {
   };
 
   return (
-    // <div className="w-full max-w-3xl mx-auto">
-      <Card className="max-w-3xl">
-        <CardHeader>
-          <CardTitle>MCP Server Discovery</CardTitle>
-          <CardDescription>
-            Connect to an MCP server and discover available tools
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-col gap-4">
-            <div className="flex gap-2">
-              <Select onValueChange={(value) => { setAuthzNegotiationMethod(value as "#195" | "draft") }} value={authzNegotationMethod}>
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="195">#195</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                type="url"
-                placeholder="Enter MCP server URL (e.g., https://example.com/mcp/sse)"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                className="flex-1"
-              />
-              <Button onClick={handleDiscoverTools} disabled={isConnecting}>
-                {isConnecting ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Connecting...
-                  </>
-                ) : (
-                  "Discover Tools"
-                )}
-              </Button>
-            </div>
-
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {logs.length > 0 && (
-              <div className="mt-4">
-                <h3 className="text-lg font-medium mb-2">Connection Log</h3>
-                <div className="bg-muted p-4 rounded-md overflow-auto max-h-40 text-sm font-mono">
-                  {logs.map((log, index) => (
-                    <div
-                      key={index}
-                      className={`mb-1 ${
-                        log.type === "error" ? "text-red-500" : ""
-                      }`}
-                    >
-                      {log.type === "status" ? (
-                        <div className="flex items-start">
-                          <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 text-green-500" />
-                          <span>{log.message}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-start">
-                          <AlertCircle className="h-4 w-4 mr-2 mt-0.5 text-red-500" />
-                          <span>{log.message}</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  <div ref={logsEndRef} />
-                </div>
-              </div>
-            )}
-
-            {tools && (
-              <div className="mt-4">
-                <h3 className="text-lg font-medium mb-2">Discovered Tools</h3>
-                <pre className="bg-muted p-4 rounded-md overflow-auto max-h-96">
-                  {JSON.stringify(tools, null, 2)}
-                </pre>
-              </div>
-            )}
+    <Card className="max-w-3xl">
+      <CardHeader>
+        <CardTitle>MCP Server Discovery</CardTitle>
+        <CardDescription>
+          Connect to an MCP server and discover available tools
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-2">
+            <Select
+              onValueChange={(value) => {
+                setAuthzNegotiationMethod(value as "#195" | "draft");
+              }}
+              value={authzNegotationMethod}
+            >
+              <SelectTrigger className="w-[100px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="195">#195</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              type="url"
+              placeholder="Enter MCP server URL (e.g., https://example.com/mcp/sse)"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              className="flex-1"
+            />
+            <Button onClick={handleDiscoverTools} disabled={isConnecting}>
+              {isConnecting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Connecting...
+                </>
+              ) : (
+                "Discover Tools"
+              )}
+            </Button>
           </div>
-        </CardContent>
-        <CardFooter className="flex justify-between">
-          <p className="text-sm text-muted-foreground">
-            This component uses Next.js Server Actions to connect to MCP servers
-            with streaming updates.
-          </p>
-        </CardFooter>
-      </Card>
-    // </div>
+
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+
+          {logs.length > 0 && (
+            <div className="mt-4">
+              <h3 className="text-lg font-medium mb-2">Connection Log</h3>
+              <div className="bg-muted p-4 rounded-md overflow-auto max-h-40 text-sm font-mono">
+                {logs.map((log, index) => (
+                  <div
+                    key={index}
+                    className={`mb-1 ${
+                      log.type === "error" ? "text-red-500" : ""
+                    }`}
+                  >
+                    {log.type === "status" ? (
+                      <div className="flex items-start">
+                        <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 text-green-500" />
+                        <span>{log.message}</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-start">
+                        <AlertCircle className="h-4 w-4 mr-2 mt-0.5 text-red-500" />
+                        <span>{log.message}</span>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                <div ref={logsEndRef} />
+              </div>
+            </div>
+          )}
+
+          {tools && (
+            <div className="mt-4">
+              <h3 className="text-lg font-medium mb-2">Discovered Tools</h3>
+              <pre className="bg-muted p-4 rounded-md overflow-auto max-h-96">
+                {JSON.stringify(tools, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <p className="text-sm text-muted-foreground">
+          This component uses Next.js Server Actions to connect to MCP servers
+          with streaming updates.
+        </p>
+      </CardFooter>
+    </Card>
   );
 }
