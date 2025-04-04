@@ -25,14 +25,11 @@ export const get_zoom_meeting_invitation = tool({
     meeting_id: z.string(),
   }),
   execute: async ({ meeting_id }) => {
-    const res = await fetch(
-      `https://api.zoom.us/v2/meetings/${meeting_id}/invitation`,
-      {
-        headers: {
-          Authorization: `Bearer ${await getZoomToken()}`,
-        },
-      }
-    );
+    const res = await fetch(`https://api.zoom.us/v2/meetings/${meeting_id}/invitation`, {
+      headers: {
+        Authorization: `Bearer ${await getZoomToken()}`,
+      },
+    });
 
     if (!res.ok) throw new Error("Failed to get Zoom meeting invitation");
     return await res.text(); // this endpoint returns plain text
@@ -61,14 +58,11 @@ export const get_zoom_meeting_summary = tool({
     meeting_id: z.string(),
   }),
   execute: async ({ meeting_id }) => {
-    const res = await fetch(
-      `https://api.zoom.us/v2/meetings/${meeting_id}/summary`,
-      {
-        headers: {
-          Authorization: `Bearer ${await getZoomToken()}`,
-        },
-      }
-    );
+    const res = await fetch(`https://api.zoom.us/v2/meetings/${meeting_id}/summary`, {
+      headers: {
+        Authorization: `Bearer ${await getZoomToken()}`,
+      },
+    });
 
     if (!res.ok) throw new Error("Failed to fetch meeting summary");
     return await res.json();

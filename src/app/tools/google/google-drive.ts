@@ -6,10 +6,7 @@ import * as google from "@googleapis/drive";
 export const list_files = tool({
   description: "Get a list of files from Google Drive",
   parameters: z.object({
-    pageSize: z
-      .number()
-      .default(10)
-      .describe("The maximum number of files to return"),
+    pageSize: z.number().default(10).describe("The maximum number of files to return"),
   }),
   execute: async ({ pageSize }) => {
     const auth = await getGoogleAuth();

@@ -1,6 +1,4 @@
 /**
  * Lists all available connections
  */
-export function GET() {
-
-}
+export function GET() {}

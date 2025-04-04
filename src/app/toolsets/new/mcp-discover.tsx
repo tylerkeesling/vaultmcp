@@ -15,12 +15,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { discoverMCPTools } from "./actions";
 import { Select } from "@radix-ui/react-select";
-import {
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 /**
  *
@@ -31,14 +26,10 @@ export default function MCPDiscovery() {
   const [tools, setTools] = useState<Record<string, any> | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const [authzNegotationMethod, setAuthzNegotiationMethod] = useState<
-    "draft" | "#195"
-  >("draft");
+  const [authzNegotationMethod, setAuthzNegotiationMethod] = useState<"draft" | "#195">("draft");
   const [url, setUrl] = useState("");
 
-  const [logs, setLogs] = useState<Array<{ type: string; message: string }>>(
-    []
-  );
+  const [logs, setLogs] = useState<Array<{ type: string; message: string }>>([]);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll logs to bottom
@@ -96,15 +87,9 @@ export default function MCPDiscovery() {
             const data = JSON.parse(line);
 
             if (data.type === "status") {
-              setLogs((prev) => [
-                ...prev,
-                { type: "status", message: data.message },
-              ]);
+              setLogs((prev) => [...prev, { type: "status", message: data.message }]);
             } else if (data.type === "error") {
-              setLogs((prev) => [
-                ...prev,
-                { type: "error", message: data.message },
-              ]);
+              setLogs((prev) => [...prev, { type: "error", message: data.message }]);
               setError(data.message);
             } else if (data.type === "tools") {
               setTools(data.data);
@@ -117,9 +102,7 @@ export default function MCPDiscovery() {
     } catch (err) {
       console.error("Error connecting to MCP server:", err);
       setError(
-        `Failed to connect to MCP server: ${
-          err instanceof Error ? err.message : String(err)
-        }`
+        `Failed to connect to MCP server: ${err instanceof Error ? err.message : String(err)}`
       );
       setLogs((prev) => [
         ...prev,
@@ -139,9 +122,7 @@ export default function MCPDiscovery() {
     <Card className="max-w-3xl">
       <CardHeader>
         <CardTitle>MCP Server Discovery</CardTitle>
-        <CardDescription>
-          Connect to an MCP server and discover available tools
-        </CardDescription>
+        <CardDescription>Connect to an MCP server and discover available tools</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-4">
@@ -189,23 +170,18 @@ export default function MCPDiscovery() {
 
           {logs.length > 0 && (
             <div className="mt-4">
-              <h3 className="text-lg font-medium mb-2">Connection Log</h3>
-              <div className="bg-muted p-4 rounded-md overflow-auto max-h-40 text-sm font-mono">
+              <h3 className="mb-2 text-lg font-medium">Connection Log</h3>
+              <div className="bg-muted max-h-40 overflow-auto rounded-md p-4 font-mono text-sm">
                 {logs.map((log, index) => (
-                  <div
-                    key={index}
-                    className={`mb-1 ${
-                      log.type === "error" ? "text-red-500" : ""
-                    }`}
-                  >
+                  <div key={index} className={`mb-1 ${log.type === "error" ? "text-red-500" : ""}`}>
                     {log.type === "status" ? (
                       <div className="flex items-start">
-                        <CheckCircle2 className="h-4 w-4 mr-2 mt-0.5 text-green-500" />
+                        <CheckCircle2 className="mt-0.5 mr-2 h-4 w-4 text-green-500" />
                         <span>{log.message}</span>
                       </div>
                     ) : (
                       <div className="flex items-start">
-                        <AlertCircle className="h-4 w-4 mr-2 mt-0.5 text-red-500" />
+                        <AlertCircle className="mt-0.5 mr-2 h-4 w-4 text-red-500" />
                         <span>{log.message}</span>
                       </div>
                     )}
@@ -218,8 +194,8 @@ export default function MCPDiscovery() {
 
           {tools && (
             <div className="mt-4">
-              <h3 className="text-lg font-medium mb-2">Discovered Tools</h3>
-              <pre className="bg-muted p-4 rounded-md overflow-auto max-h-96">
+              <h3 className="mb-2 text-lg font-medium">Discovered Tools</h3>
+              <pre className="bg-muted max-h-96 overflow-auto rounded-md p-4">
                 {JSON.stringify(tools, null, 2)}
               </pre>
             </div>
@@ -227,9 +203,9 @@ export default function MCPDiscovery() {
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">
-        <p className="text-sm text-muted-foreground">
-          This component uses Next.js Server Actions to connect to MCP servers
-          with streaming updates.
+        <p className="text-muted-foreground text-sm">
+          This component uses Next.js Server Actions to connect to MCP servers with streaming
+          updates.
         </p>
       </CardFooter>
     </Card>

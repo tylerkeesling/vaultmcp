@@ -56,35 +56,33 @@ export const list_calendars = tool({
   },
 });
 
-
-
 export const list_calendar_events = tool({
-    description: "Get a list of events from Google Calendar",
-    parameters: z.object({
-      calendarId: z.string().describe("The calendar ID to get the events for"),
-      maxResults: z.number().default(10).describe("The maximum number of events to return"),
-      start: z.string().optional().describe("The start time of the events to get"),
-      end: z.string().optional().describe("The end time of the events to get"),
-    }),
-    execute: async ({ calendarId, maxResults, start, end }) => {
-      const auth = await getGoogleAuth();
-      const calendar = google.calendar({ version: "v3", auth });
-  
-      const timeMin = start ? new Date(start).toISOString() : new Date().toISOString();
-      const timeMax = end
-        ? new Date(end).toISOString()
-        : new Date(new Date(timeMin).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
-  
-      const response = await calendar.events.list({
-        calendarId,
-        maxResults: maxResults + 1,
-        fields: "items(summary,start,end,location)",
-        timeMin,
-        timeMax,
-        singleEvents: true,
-        orderBy: "startTime",
-      });
-  
-      return response.data.items;
-    },
-  });
+  description: "Get a list of events from Google Calendar",
+  parameters: z.object({
+    calendarId: z.string().describe("The calendar ID to get the events for"),
+    maxResults: z.number().default(10).describe("The maximum number of events to return"),
+    start: z.string().optional().describe("The start time of the events to get"),
+    end: z.string().optional().describe("The end time of the events to get"),
+  }),
+  execute: async ({ calendarId, maxResults, start, end }) => {
+    const auth = await getGoogleAuth();
+    const calendar = google.calendar({ version: "v3", auth });
+
+    const timeMin = start ? new Date(start).toISOString() : new Date().toISOString();
+    const timeMax = end
+      ? new Date(end).toISOString()
+      : new Date(new Date(timeMin).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const response = await calendar.events.list({
+      calendarId,
+      maxResults: maxResults + 1,
+      fields: "items(summary,start,end,location)",
+      timeMin,
+      timeMax,
+      singleEvents: true,
+      orderBy: "startTime",
+    });
+
+    return response.data.items;
+  },
+});

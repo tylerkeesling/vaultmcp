@@ -1,0 +1,11 @@
+# Ignore artifacts:
+node_modules
+.next
+build
+dist
+public
+pnpm-lock.yaml
+package-lock.json
+.vercel
+.vscode
+*.md
