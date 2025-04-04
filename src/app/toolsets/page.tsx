@@ -4,6 +4,7 @@ import { auth0 } from "@/lib/auth0"
 import { notFound } from "next/navigation";
 import { manage } from "@/lib/auth0-manage";
 import { ToolSetInfo } from "../tools/toolset";
+import { Button } from "@/components/ui/button";
 
 export default async function Home() {
   const session = await auth0.getSession();
@@ -17,8 +18,11 @@ export default async function Home() {
   if (!userObject || status !== 200) {
     notFound();
   }
-
-  console.log(userObject.identities);
+  
+  // This is to fix the issue where identities[0] does
+  // not have the profile data.
+  // won't happen in demos
+  userObject.identities[0].profileData = userObject;
 
   // weave identities and registry maybe split this later
   const toolsets = Object.entries(registry).map(([connectionName, info]) => {
@@ -36,12 +40,18 @@ export default async function Home() {
   }); 
 
   console.log(toolsets);
+  
+  const customMcp = (userObject.app_metadata || {}).custom_mcp || [];
 
   return (
     <main className="container mx-auto py-10 px-4">
       <h1 className="text-3xl font-bold mb-6">MCP Server Dashboard</h1>
-      <p className="text-muted-foreground mb-8">Manage your MCP server connections and view server status</p>
+      <p className="text-muted-foreground mb-8">Manage access to built in tools</p>
       <ToolCards toolsets={toolsets} />
+      <h2 className="text-3xl font-bold mb-6">Custom Tools</h2>
+      <p className="text-muted-foreground mb-8">Add any MCP Server, or Manange Existing ones</p>
+      <ToolCards toolsets={[]} />
+      {customMcp.length < 3 && <Button asChild><a href="/toolsets/new">Add Custom</a></Button>}
     </main>
   )
 }

@@ -1,11 +1,33 @@
 "use server"
 
 import { experimental_createMCPClient } from "ai"
+import { z } from 'zod';
 // Remove the incorrect import and use the standard Response object
 
-export async function discoverMCPTools(url: string) {
+const mcpDiscoverySchema = z.object({
+    url: z.string().url().describe("URL for the MCP Server"),
+    authzNegotationMethod: z.enum([
+        "draft", 
+        "#195", 
+        "#205"
+    ]),
+})
+
+
+
+export async function discoverMCPTools(params: z.infer<typeof mcpDiscoverySchema>) {
   // Create a streaming response
-  const encoder = new TextEncoder()
+  const encoder = new TextEncoder();
+  const { data: mcpDiscovery, success, error } = mcpDiscoverySchema.safeParse(params);
+
+  if (!success) {
+    return {
+        error: "invalid_request",
+        error_description: "Invalid of unexpected input",
+        errors: error.flatten()
+    }
+  }
+
   const stream = new ReadableStream({
     async start(controller) {
       try {
@@ -29,12 +51,19 @@ export async function discoverMCPTools(url: string) {
           ),
         )
 
+        // This will unfortunately blow up every now and then
+        // if the session expires. :(
         const mcpClient = await experimental_createMCPClient({
           transport: {
             type: "sse",
-            url: url,
+            url: mcpDiscovery.url,
+            headers: {
+
+            }
           },
         })
+
+        console.log({ mcpClient });
 
         controller.enqueue(
           encoder.encode(
@@ -79,6 +108,7 @@ export async function discoverMCPTools(url: string) {
           ),
         )
       } catch (err) {
+        console.log(err);
         controller.enqueue(
           encoder.encode(
             JSON.stringify({

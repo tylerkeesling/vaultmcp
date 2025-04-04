@@ -101,7 +101,7 @@ exports.onExecutePostLogin = async (event, api) => {
                 );
                 return;
             }
-
+            
             if (event.configuration.ENFORCE_MFA === 'yes') {
                 if (
                     Array.isArray(event.user.enrolledFactors) &&
@@ -127,6 +127,12 @@ exports.onExecutePostLogin = async (event, api) => {
                     event.user.user_id,
                 );
                 api.access.deny('Email Verification is required for account linking');
+                return;
+            }
+
+            // This is specific to this instance.
+            if (hasAccessToConnection(event) === false) {
+                api.access.deny("Not authorized, you are not allowed to use this MCP Server");
                 return;
             }
 
@@ -157,6 +163,36 @@ exports.onContinuePostLogin = async (event, api) => {
         return handleLinkingCallback(event, api);
     }
 };
+
+
+/**
+ * 
+ * @param {PostLoginEvent} event 
+ */
+function hasAccessToConnection(event) {
+
+    // Not an MCP (aka global)
+    if (event.connection.name.startsWith("mcp-") === false) {
+        return true;
+    }
+
+    const {
+        requested_connection: requestedConnection,
+        requested_connection_scope: requestedConnectionScope,
+    } = event.request.query;
+
+    if (!event.user.app_metadata) {
+        return false;
+    }
+
+    if (!Array.isArray(event.user.app_metadata.custom_mcp)) {
+        return false;
+    }
+
+    // By flipping this, we are going to be okay for now
+    return event.user.app_metadata.custom_mcp.includes(requestedConnection);
+}
+
 
 /**
  * Check's if this an Account Linking Request

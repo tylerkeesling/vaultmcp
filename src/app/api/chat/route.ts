@@ -2,7 +2,10 @@ import { auth0 } from '@/lib/auth0';
 import { openai } from '@ai-sdk/openai';
 import { streamText, tool } from 'ai';
 import { NextResponse } from 'next/server';
+
 import { tools as google } from '@/app/tools/google';
+import { tools as github } from '@/app/tools/github';
+
 import { z } from 'zod';
 
 
@@ -34,7 +37,8 @@ export async function POST(req: Request) {
           return (new Date()).toISOString();
         }
       }),
-      ...google
+      ...google,
+      ...github
     },
     maxSteps: 100,
   });
