@@ -4,7 +4,7 @@ import { auth0 } from "@/lib/auth0"
 import { notFound } from "next/navigation";
 import { manage } from "@/lib/auth0-manage";
 import { ToolSetInfo } from "../tools/toolset";
-import { Button } from "@/components/ui/button";
+import MCPDiscovery from "./new/mcp-discover";
 
 export default async function Home() {
   const session = await auth0.getSession();
@@ -44,14 +44,17 @@ export default async function Home() {
   const customMcp = (userObject.app_metadata || {}).custom_mcp || [];
 
   return (
-    <main className="container mx-auto py-10 px-4">
+    <main className="container mx-auto py-10 px-4 space-y-16">
+
       <h1 className="text-3xl font-bold mb-6">MCP Server Dashboard</h1>
       <p className="text-muted-foreground mb-8">Manage access to built in tools</p>
       <ToolCards toolsets={toolsets} />
+
       <h2 className="text-3xl font-bold mb-6">Custom Tools</h2>
       <p className="text-muted-foreground mb-8">Add any MCP Server, or Manange Existing ones</p>
       <ToolCards toolsets={[]} />
-      {customMcp.length < 3 && <Button asChild><a href="/toolsets/new">Add Custom</a></Button>}
+
+      {customMcp.length < 3 && <MCPDiscovery />}
     </main>
   )
 }

@@ -129,8 +129,8 @@ export default function MCPDiscovery() {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto">
-      <Card>
+    // <div className="w-full max-w-3xl mx-auto">
+      <Card className="max-w-3xl">
         <CardHeader>
           <CardTitle>MCP Server Discovery</CardTitle>
           <CardDescription>
@@ -222,6 +222,6 @@ export default function MCPDiscovery() {
           </p>
         </CardFooter>
       </Card>
-    </div>
+    // </div>
   );
 }
