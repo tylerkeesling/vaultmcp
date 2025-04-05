@@ -49,17 +49,17 @@ export default async function Home() {
   console.log(toolsets);
 
   const customMcp = ((userObject.app_metadata || {}).custom_mcp || []).map(
-    (mcpServerConnectionName: string) => {
+    ({server, connection}: { server: string, connection: string}) => {
       const identity = userObject.identities.find(
-        (identity) => identity.connection === mcpServerConnectionName
+        (identity) => identity.connection === connection
       );
 
       const mapped: ToolSetInfo & ({ installed: false } | { installed: true; profileData: any }) = {
-        connectionName: mcpServerConnectionName,
+        connectionName: connection,
         connectionScopes: [],
         contributedBy: "You",
-        description: "your own custom mcp server",
-        icon: "/icons/Google.png",
+        description: "MCP Server at " + server,
+        icon: "/icons/Cloudflare.png",
         installed: false,
         name: "Custom MCP",
         type: TOOLSET_TYPE.MCP_SERVER,
@@ -86,7 +86,7 @@ export default async function Home() {
         </div>
         <div className="mx-auto flex h-full w-full flex-row">
           <div className="mx-auto flex w-full flex-col">
-            <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col space-y-6 overflow-y-auto px-4">
+            <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col space-y-6 overflow-y-auto px-4">
               <ToolCards toolsets={toolsets} />
 
               <h2 className="mb-6 text-3xl font-bold">Custom Tools</h2>

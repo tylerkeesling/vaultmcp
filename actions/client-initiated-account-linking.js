@@ -170,16 +170,15 @@ exports.onContinuePostLogin = async (event, api) => {
  * @param {PostLoginEvent} event 
  */
 function hasAccessToConnection(event) {
-
-    // Not an MCP (aka global)
-    if (event.connection.name.startsWith("mcp-") === false) {
-        return true;
-    }
-
     const {
         requested_connection: requestedConnection,
         requested_connection_scope: requestedConnectionScope,
     } = event.request.query;
+
+    // Not an MCP (aka global)
+    if (requestedConnection.startsWith("mcp-") === false) {
+        return true;
+    }
 
     if (!event.user.app_metadata) {
         return false;
@@ -190,7 +189,7 @@ function hasAccessToConnection(event) {
     }
 
     // By flipping this, we are going to be okay for now
-    return event.user.app_metadata.custom_mcp.includes(requestedConnection);
+    return event.user.app_metadata.custom_mcp.some(({ connection }) => connection === requestedConnection);
 }
 
 

@@ -31,6 +31,8 @@ export async function getTokenFromVault({
     throw new Error("Unauthorized");
   }
 
+  console.log("Vault", { connection });
+  
   const { token } = await auth0.getAccessTokenForConnection({
     connection,
   });

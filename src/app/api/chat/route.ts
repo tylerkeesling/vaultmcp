@@ -1,10 +1,14 @@
-import { auth0 } from "@/lib/auth0";
+import { auth0, getTokenFromVault } from "@/lib/auth0";
 import { openai } from "@ai-sdk/openai";
-import { streamText, tool } from "ai";
+import { experimental_createMCPClient, streamText, tool } from "ai";
 import { NextResponse } from "next/server";
 
+/**
+ * Use tools
+ */
 import { tools as google } from "@/app/tools/google";
 import { tools as github } from "@/app/tools/github";
+import { tools as zoom } from '@/app/tools/zoom';
 
 import { z } from "zod";
 
@@ -21,7 +25,35 @@ export async function POST(req: Request) {
     });
   }
 
-  const { messages, tools } = await req.json();
+  const { messages } = await req.json();
+  const customMcpClients = session.user.custom_mcp as { server: string, connection: string }[];
+
+  const serverTools = await Promise.all(customMcpClients.map(async ({ server, connection }) => {
+    try {
+      const token = await getTokenFromVault({ connection });
+      const mcpTool = await experimental_createMCPClient({
+        transport: {
+          type: "sse",
+          url: server,
+          headers: {
+            'Authorization': `Bearer ${token}`  
+          }
+        }
+      });
+
+      return await mcpTool.tools();
+    } catch {
+      return {};
+    }
+  }));
+  const customTools = serverTools.reduce((set, currentTools) => {
+    return {
+      ...set,
+      ...currentTools
+    }
+  }, {})
+  
+  console.log({ customTools });
 
   const result = streamText({
     model: openai("gpt-4o"),
@@ -38,6 +70,8 @@ export async function POST(req: Request) {
       }),
       ...google,
       ...github,
+      ...zoom,
+      ...customTools,
     },
     maxSteps: 100,
   });

@@ -37,22 +37,9 @@ export function ToolCards({
 }: {
   toolsets: (ToolSetInfo & ({ installed: false } | { installed: true; profileData: any }))[];
 }) {
-  const router = useRouter();
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
-
-  const toggleCardExpansion = (e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    setExpandedCards((prev) => ({
-      ...prev,
-      [id]: !prev[id],
-    }));
-  };
-  const navigateToServerDetail = (serverId: string) => {
-    router.push(`/server/${serverId}`);
-  };
 
   return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-2">
+    <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
       {toolsets.map((server) => (
         <Card
           key={server.connectionName}
@@ -76,7 +63,7 @@ export function ToolCards({
                 </div>
               </div>
             </div>
-            <CardDescription className={expandedCards[server && server.id] ? "" : "line-clamp-2"}>
+            <CardDescription className={"mt-5 line-clamp-2"}>
               {server.description}
             </CardDescription>
           </CardHeader>
@@ -99,11 +86,20 @@ export function ToolCards({
           </CardContent>
 
           <CardFooter className="pt-2">
-            <Button variant={server.installed ? "outline" : "default"} className="w-full">
-              <a href={`/api/connect/?tool=${server.connectionName}`}>
-                {!server.installed ? "Install & Connect" : server.installed ? "Manage" : "Connect"}
-              </a>
-            </Button>
+            {
+              server.installed === true && 
+              <Button variant={"destructive"} className="w-full">
+                Disconnect
+              </Button>
+            }
+            {
+              server.installed === false && 
+              <Button variant={"default"} className="w-full">
+                <a href={`/api/connect/?tool=${server.connectionName}`}>
+                  Install & Connect
+                </a>
+              </Button>
+            }
           </CardFooter>
         </Card>
       ))}

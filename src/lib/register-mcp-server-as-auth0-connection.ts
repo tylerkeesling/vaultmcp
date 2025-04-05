@@ -199,6 +199,8 @@ async function performDiscovery(
   serverAddress: string,
   method: "draft" | "#195"
 ) {
+  console.log(method, serverAddress);
+
   let response;
   try {
     response = await fetch(serverAddress);
@@ -293,7 +295,7 @@ async function createAuth0OIDCConnection(
       // default scopes
       scopes: "openid profile email",
       token_endpoint_auth_method: "client_secret_post",
-      federated_connection_access_token: {
+      federated_connections_access_tokens: {
         active: true,
       },
     },
@@ -304,6 +306,7 @@ async function createAuth0OIDCConnection(
     },
     enabled_clients: [
       process.env.CLIENT_INITIATED_ACCOUNT_LINKING_ACTION_CLIENT_ID!,
+      process.env.AUTH0_CLIENT_ID!,
     ],
   });
 
@@ -349,6 +352,9 @@ async function createAuth0CustomSocialConnection(
   });
 }`,
       },
+      federated_connections_access_tokens: {
+        active: true,
+      }
     },
     metadata: {
       owner_sub: owner_sub,
@@ -397,11 +403,34 @@ export async function registerMcpAndCreateAuth0Connection(
   // grant this current user access
   // Get than post.
   const { data: user, status } = await manage.users.get({ id: ownerSub });
+
   if (status === 200) {
+
+    if (user.identities.length > 10) {
+      throw new Error("You have too many identities");
+    }
+
+    
     user.app_metadata = user.app_metadata || {};
     user.app_metadata.custom_mcp = user.app_metadata.custom_mcp || [];
-    user.app_metadata.custom_mcp.push(connection.name);
-    await manage.users.update({ id: ownerSub }, { app_metadata: user.app_metadata });
+    
+    const { custom_mcp: customMcp } = user.app_metadata;
+
+    if (customMcp.length > 3) {
+      throw new Error("You are on the maximum limit of Custom MCPs allowed");
+    }
+
+    // add new one
+    customMcp.push({
+      connection: connection.name,
+      server: mcpUrl,
+    });
+
+    await manage.users.update({ 
+      id: ownerSub 
+    }, { 
+      app_metadata: user.app_metadata 
+    });
   }
 
   return connection;
