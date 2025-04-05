@@ -28,7 +28,7 @@ interface EnhancedMessage {
 
 export function ChatBox() {
   // State
-  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [, setCopiedId] = useState<string | null>(null);
   const [enhancedMessages, setEnhancedMessages] = useState<EnhancedMessage[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -43,7 +43,6 @@ export function ChatBox() {
     isLoading,
     error,
     reload,
-    stop,
     setMessages,
   } = useChat({
     api: "/api/chat",
@@ -187,7 +186,7 @@ export function ChatBox() {
         // Extract language and code
         const match = part.match(/```([\w-]+)?\n([\s\S]*?)\n```/);
         if (match) {
-          const [_, language, code] = match;
+          const [,, code] = match;
           return (
             <pre key={i} className="my-2 overflow-x-auto rounded-md bg-black/5 p-3 dark:bg-white/5">
               <code className="font-mono text-sm">{code}</code>

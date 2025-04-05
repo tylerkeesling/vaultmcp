@@ -63,7 +63,6 @@ export class WWWAuthenticateChallengeError extends Error {
     this.response = options.response;
     Object.defineProperty(this, "response", { enumerable: false });
 
-    // @ts-ignore
     Error.captureStackTrace?.(this, this.constructor);
   }
 }
@@ -125,7 +124,7 @@ function wwwAuth(scheme: string, params: string): WWWAuthenticateChallenge {
     const key = arr[idx - 1]
       .replace(/^(?:, ?)|=$/g, "")
       .toLowerCase() as Lowercase<string>;
-    // @ts-expect-error
+    // @ts-expect-error js strikes back
     parameters[key] = unquote(arr[idx]);
   }
 
@@ -270,7 +269,7 @@ export async function discoverOrFallback(server: string) {
 /**
  * Creates an Auth0 OIDC connection with the MCP credentials
  */
-async function createAuth0OIDCConnection(
+export async function createAuth0OIDCConnection(
   details: {
     authorization_endpoint: string;
     jwks_uri: string;

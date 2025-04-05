@@ -3,7 +3,6 @@
 import type React from "react";
 import Image from "next/image";
 
-import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -14,23 +13,22 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 import { ToolSetInfo } from "@/app/tools/toolset";
 
 // Define server types
-interface User {
-  name: string;
-  email: string;
-  avatar: string;
-  role: string;
-}
+// interface User {
+//   name: string;
+//   email: string;
+//   avatar: string;
+//   role: string;
+// }
 
-interface Action {
-  id: string;
-  name: string;
-  description: string;
-  installed: boolean;
-}
+// interface Action {
+//   id: string;
+//   name: string;
+//   description: string;
+//   installed: boolean;
+// }
 
 export function ToolCards({
   toolsets,

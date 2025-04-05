@@ -37,9 +37,9 @@ export default async function Home() {
     };
 
     if (identity !== undefined) {
-      // @ts-ignore
+      // @ts-expect-error to be fixed
       mapped.installed = true;
-      // @ts-ignore
+      // @ts-expect-error to be fixed
       mapped.profileData = identity.profileData;
     }
 
@@ -66,9 +66,9 @@ export default async function Home() {
       };
 
       if (identity !== undefined) {
-        // @ts-ignore
+        // @ts-expect-error to be fixed
         mapped.installed = true;
-        // @ts-ignore
+        // @ts-expect-error to be fixed
         mapped.profileData = identity.profileData;
       }
 

@@ -23,6 +23,7 @@ const eslintConfig = [
       "tailwindcss/no-arbitrary-value": "off",
       "tailwindcss/no-custom-classname": "off",
       "tailwindcss/no-contradicting-classname": "off",
+      "@typescript-eslint/no-explicit-any": "off"
     },
   },
 ];
