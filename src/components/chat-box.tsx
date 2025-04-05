@@ -8,10 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Bot, RefreshCw, Trash2, ArrowUp, CopyIcon } from "lucide-react";
+import { Bot, RefreshCw, Trash2, ArrowUp, CopyIcon, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
+import rehypeSanitize from "rehype-sanitize";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { duotoneLight, duotoneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 // Define message types
 type MessageType = "text" | "code" | "tool-call" | "tool-result";
@@ -43,7 +49,6 @@ export function ChatBox() {
     isLoading,
     error,
     reload,
-    stop,
     setMessages,
   } = useChat({
     api: "/api/chat",
@@ -54,10 +59,14 @@ export function ChatBox() {
   });
 
   // Process messages to enhance them with timestamps and types
-  const processMessage = (message: any) => {
+  const processMessage = (message: {
+    id: string;
+    role: "user" | "assistant" | "system" | "data";
+    content: string;
+  }) => {
     const newMessage: EnhancedMessage = {
       id: message.id,
-      role: message.role,
+      role: message.role === "data" ? "system" : message.role,
       content: message.content,
       timestamp: new Date(),
       type: "text",
@@ -187,7 +196,7 @@ export function ChatBox() {
         // Extract language and code
         const match = part.match(/```([\w-]+)?\n([\s\S]*?)\n```/);
         if (match) {
-          const [_, language, code] = match;
+          const [, , code] = match;
           return (
             <pre key={i} className="my-2 overflow-x-auto rounded-md bg-black/5 p-3 dark:bg-white/5">
               <code className="font-mono text-sm">{code}</code>
@@ -243,6 +252,10 @@ export function ChatBox() {
       <div
         ref={chatContainerRef}
         className="mx-auto flex w-full max-w-2xl flex-1 flex-col space-y-6 px-6 md:px-0"
+        style={{
+          WebkitMaskImage: "linear-gradient(to top, transparent 0%, black 5%)",
+          maskImage: "linear-gradient(to top, transparent 0%, black 5%)",
+        }}
       >
         <AnimatePresence initial={false}>
           {enhancedMessages.map((message) => (
@@ -282,14 +295,146 @@ export function ChatBox() {
                   >
                     <div
                       className={cn(
-                        "prose prose-sm text-foreground relative flex max-w-none flex-col items-start gap-2 transition-opacity",
+                        "prose prose-sm text-foreground relative flex max-w-none flex-col items-start transition-opacity",
                         {
+                          "gap-2": message.role === "assistant",
                           "min-h-[20px]": message.role === "assistant",
                         }
                       )}
                     >
                       <span className="w-full text-base leading-tight">
-                        {typeof message.content === "string" && formatContent(message.content)}
+                        {typeof message.content === "string" && (
+                          <Markdown
+                            remarkPlugins={[remarkGfm]}
+                            rehypePlugins={[rehypeRaw, rehypeSanitize]}
+                            components={{
+                              h1: ({ ...props }) => (
+                                <h1 className="mt-3 mb-2 text-xl font-bold" {...props} />
+                              ),
+                              h2: ({ ...props }) => (
+                                <h2 className="mt-3 mb-2 text-lg font-bold" {...props} />
+                              ),
+                              h3: ({ ...props }) => (
+                                <h3 className="text-md mt-3 mb-2 font-bold" {...props} />
+                              ),
+                              p: ({ ...props }) => <p className="my-2" {...props} />,
+                              a: ({ ...props }) => (
+                                <a
+                                  className="text-foreground hover:text-muted-foreground underline underline-offset-6"
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  {...props}
+                                />
+                              ),
+                              ul: ({ children, ...props }) => (
+                                <ul className="my-2 list-none pl-4" {...props}>
+                                  {children}
+                                </ul>
+                              ),
+                              ol: ({ ...props }) => (
+                                <ol className="my-2 list-none pl-5" {...props} />
+                              ),
+                              li: ({ children, ...props }) => (
+                                <li className="chat relative my-1" {...props}>
+                                  {children}
+                                </li>
+                              ),
+                              blockquote: ({ ...props }) => (
+                                <blockquote
+                                  className="border-border my-2 border-l-4 pl-4 italic"
+                                  {...props}
+                                />
+                              ),
+                              // @ts-expect-error - Code component has specific props from react-markdown
+                              code({
+                                ref,
+                                className,
+                                children,
+                                inline,
+                                ...props
+                              }: {
+                                ref: Ref<SyntaxHighlighter> | undefined;
+                                className: string;
+                                children: React.ReactNode;
+                                inline: boolean;
+                              }) {
+                                const match = /language-(\w+)/.exec(className || "");
+                                return !inline && match ? (
+                                  <div className="relative">
+                                    <SyntaxHighlighter
+                                      ref={ref}
+                                      style={theme === "light" ? duotoneLight : duotoneDark}
+                                      showLineNumbers={true}
+                                      wrapLines={true}
+                                      wrapLongLines={true}
+                                      lineNumberStyle={{ fontStyle: "unset" }}
+                                      language={match[1]}
+                                      PreTag="div"
+                                      className="border-border outline-border !my-3 max-w-full overflow-clip rounded-xl border font-mono text-sm text-wrap shadow-md outline outline-offset-2"
+                                      {...props}
+                                    >
+                                      {String(children).replace(/\n$/, "")}
+                                    </SyntaxHighlighter>
+                                    <Button
+                                      variant="outline"
+                                      className="hover:bg-background absolute top-2 right-2 h-7 cursor-pointer rounded-lg p-1"
+                                      onClick={handleCopy}
+                                      title="Copy to clipboard"
+                                    >
+                                      <CopyIcon className="text-foreground size-4" />
+                                    </Button>
+                                  </div>
+                                ) : (
+                                  <code
+                                    className={cn(
+                                      "bg-muted/25 border-border/80 rounded-md border px-1 py-0.5 font-mono text-xs text-wrap shadow-[0_1px_2px_-1px_rgba(0,0,0,0.16)]",
+                                      className
+                                    )}
+                                    {...props}
+                                  >
+                                    {String(children).trimStart().trimEnd()}
+                                  </code>
+                                );
+                              },
+                              table: ({ ...props }) => (
+                                <div className="border-border shadow-bevel-xs my-4 overflow-x-auto rounded-xl border">
+                                  <table
+                                    className="divide-border min-w-full divide-y text-sm"
+                                    {...props}
+                                  />
+                                </div>
+                              ),
+                              th: ({ ...props }) => (
+                                <th
+                                  className="bg-muted/50 px-2.5 py-1.5 text-left text-xs font-semibold"
+                                  {...props}
+                                />
+                              ),
+                              td: ({ ...props }) => (
+                                <td className="border-border border-t px-2.5 py-1.5" {...props} />
+                              ),
+                              img: ({ ...props }) => (
+                                <div className="border-border bg-card flex max-w-[30%] flex-col gap-1 rounded-xl border p-1">
+                                  <img
+                                    className="border-border rounded-lg border shadow-md"
+                                    {...props}
+                                  />
+                                  <caption className="flex w-full items-center gap-1 px-1 py-1 text-left text-xs">
+                                    <span className="bg-muted rounded-full p-1">
+                                      <Info className="size-4" />
+                                    </span>
+                                    {props!.alt}
+                                  </caption>
+                                </div>
+                              ),
+                              hr: ({ ...props }) => (
+                                <hr className="border-border my-4 w-full" {...props} />
+                              ),
+                            }}
+                          >
+                            {message.content}
+                          </Markdown>
+                        )}
                       </span>
                       <span className="text-muted-foreground w-fit text-xs">
                         {format(message.timestamp, "h:mm a")}
@@ -309,6 +454,11 @@ export function ChatBox() {
                       >
                         <CopyIcon className="text-foreground size-4" />
                       </Button>
+                      {copiedId === message.id && (
+                        <span className="absolute right-0 -bottom-5 text-xs text-green-500">
+                          Copied!
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -377,7 +527,7 @@ export function ChatBox() {
               className="px-0 text-base shadow-none focus:shadow-none"
               disabled={isLoading}
             />
-            <Button variant="default" onClick={handleSubmit} disabled={isLoading || !input.trim()}>
+            <Button type="submit" variant="default" disabled={isLoading || !input.trim()}>
               <ArrowUp />
             </Button>
           </div>
