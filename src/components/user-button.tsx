@@ -4,12 +4,13 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUser } from '@auth0/nextjs-auth0';
+import { useUser } from "@auth0/nextjs-auth0";
 import { Skeleton } from "./ui/skeleton";
 
 interface KeyValueMap {
@@ -54,18 +55,25 @@ function getAvatarFallback(user: KeyValueMap) {
 }
 
 export function LoginOrUser() {
-    const {user, isLoading} = useUser();
-    if (!user) {
-        return <Button size={"lg"} asChild><a href="/auth/login">Login</a></Button>
-    }
-    if (isLoading) {
-        return <Skeleton />
-    }
-    return <UserButton user={user}>
-      <DropdownMenuItem asChild><a href="/toolsets">Tools</a></DropdownMenuItem>
+  const { user, isLoading } = useUser();
+  if (!user) {
+    return (
+      <Button size={"lg"} asChild>
+        <a href="/auth/login">Login</a>
+      </Button>
+    );
+  }
+  if (isLoading) {
+    return <Skeleton />;
+  }
+  return (
+    <UserButton user={user}>
+      <DropdownMenuItem asChild>
+        <a href="/toolsets">Tools</a>
+      </DropdownMenuItem>
     </UserButton>
+  );
 }
-
 
 export function UserButton({
   user,
@@ -84,25 +92,23 @@ export function UserButton({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-16 w-16 rounded-full">
-          <Avatar className="h-16 w-16">
+        <Button variant="ghost" className="h-10 w-10 p-0.5">
+          <Avatar>
             <AvatarImage src={picture} alt={picture} />
             <AvatarFallback>{getAvatarFallback(user)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
-        <DropdownMenuLabel className="font-normal">
+        <DropdownMenuLabel className="flex flex-row items-center gap-3 font-normal">
           <div className="flex gap-3">
-            <Avatar className="h-16 w-16">
+            <Avatar>
               <AvatarImage src={picture} alt={picture} />
               <AvatarFallback>{getAvatarFallback(user)}</AvatarFallback>
             </Avatar>
-            <div className="flex flex-col space-y-1">
-              <p className="text-sm font-medium leading-none">{name}</p>
-              <p className="text-xs leading-none text-muted-foreground">
-                {email}
-              </p>
+            <div className="flex flex-col items-start justify-center">
+              <p className="text-sm leading-none font-medium">{name}</p>
+              <p className="text-xs leading-none">{email}</p>
             </div>
           </div>
         </DropdownMenuLabel>
@@ -110,13 +116,13 @@ export function UserButton({
         {children && (
           <>
             <DropdownMenuSeparator />
-            {children}
+            <DropdownMenuGroup>{children}</DropdownMenuGroup>
             <DropdownMenuSeparator />
           </>
         )}
 
         <DropdownMenuItem>
-          <a href={resolvedLogoutUrl} className="flex gap-2 items-center">
+          <a href={resolvedLogoutUrl} className="flex items-center gap-2">
             <LogOut />
             Log out
           </a>

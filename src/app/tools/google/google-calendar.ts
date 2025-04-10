@@ -2,6 +2,7 @@ import { z } from "zod";
 import { tool } from "ai";
 import { getGoogleAuth } from "./get-google-token";
 import * as google from "@googleapis/calendar";
+import { t } from "@/lib/auth0";
 
 export const create_google_event = tool({
   description: "Create an event in Google Calendar",
@@ -11,7 +12,7 @@ export const create_google_event = tool({
     start: z.string().describe("The event start time"),
     end: z.string().describe("The event end time"),
   }),
-  execute: async ({ calendarId, summary, start, end }) => {
+  execute: t(async ({ calendarId, summary, start, end }) => {
     try {
       const instance = google.calendar({
         version: "v3",
@@ -38,13 +39,13 @@ export const create_google_event = tool({
     } catch (error: any) {
       throw new Error("Error creating event:", error.toString());
     }
-  },
+  }),
 });
 
 export const list_calendars = tool({
   description: "Get a list of calendars from Google Calendar",
   parameters: z.object({}),
-  execute: async () => {
+  execute: t(async () => {
     const auth = await getGoogleAuth();
     const calendar = google.calendar({ version: "v3", auth });
 
@@ -53,7 +54,7 @@ export const list_calendars = tool({
     });
 
     return response.data.items;
-  },
+  }),
 });
 
 export const list_calendar_events = tool({
@@ -64,7 +65,7 @@ export const list_calendar_events = tool({
     start: z.string().optional().describe("The start time of the events to get"),
     end: z.string().optional().describe("The end time of the events to get"),
   }),
-  execute: async ({ calendarId, maxResults, start, end }) => {
+  execute: t(async ({ calendarId, maxResults, start, end }) => {
     const auth = await getGoogleAuth();
     const calendar = google.calendar({ version: "v3", auth });
 
@@ -84,5 +85,5 @@ export const list_calendar_events = tool({
     });
 
     return response.data.items;
-  },
+  }),
 });

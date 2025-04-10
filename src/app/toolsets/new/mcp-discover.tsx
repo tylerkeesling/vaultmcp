@@ -76,7 +76,6 @@ export default function MCPDiscovery() {
         setTools({ name: response.name })
       }
     } catch (err) {
-      console.error("Error connecting to MCP server:", err)
       setError(`Failed to connect to MCP server: ${err instanceof Error ? err.message : String(err)}`)
       setLogs((prev) => [
         ...prev,
@@ -110,7 +109,7 @@ export default function MCPDiscovery() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem disabled value="#195">#195 and #205</SelectItem>
+                <SelectItem value="#195">#195 and #205</SelectItem>
               </SelectContent>
             </Select>
             <Input

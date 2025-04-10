@@ -28,6 +28,7 @@ export async function POST(req: Request) {
   const { messages } = await req.json();
   const customMcpClients = session.user.custom_mcp as { server: string, connection: string }[];
 
+  
   const serverTools = await Promise.all(customMcpClients.map(async ({ server, connection }) => {
     try {
       const token = await getTokenFromVault({ connection });
@@ -41,8 +42,10 @@ export async function POST(req: Request) {
         }
       });
 
+      console.log("Got tools from", server);
       return await mcpTool.tools();
-    } catch {
+    } catch (err) {
+      console.log({ err });
       return {};
     }
   }));
@@ -53,12 +56,16 @@ export async function POST(req: Request) {
     }
   }, {})
   
-  console.log({ customTools });
 
   const result = streamText({
     model: openai("gpt-4o"),
     system:
-      "You are a developer tool agent your job is to help developers try out features associated with Auth0's Token Vault (which allows storing tokens to call tools).",
+      "You are a developer tool agent your job is to help developers"
+      + " try out features associated with Auth0's Token Vault (which"
+      + " allows storing tokens to call tools)."
+      + " an end user can visit [Tools](/toolset)"
+      + " and teach you how to do new things by adding"
+      + " an MCP Server that supports that. ",
     messages,
     tools: {
       current_date: tool({
@@ -68,9 +75,52 @@ export async function POST(req: Request) {
           return new Date().toISOString();
         },
       }),
-      ...google,
-      ...github,
-      ...zoom,
+      // add tool to help teach
+      inform_about_toolset: tool({
+        description: "Provides information about how new capabilities can be taught to the agent via MCP Servers",
+        parameters: z.object({}),
+        execute: async ({}) => {
+          return {
+            message: "MCP Servers can be added at [tools](/toolsets)",
+            requirements: "Must implement MCP Auth via Oauth 2.1",
+            protocols: [
+              "MCP Draft 2025-03-26",
+              "OAuth 2.0"
+            ]
+          }
+        },
+      }),
+
+      who_built_you: tool({
+        description: "Provides information about this agent",
+        parameters: z.object({}),
+        async execute() {
+          return {
+            message: "VaultMCP",
+            created_by: "Auth0 Team",
+            during: "Internal Hackathon",
+            thanks_to: "panva for jose, openid-client and excellent devex",
+          }
+        }
+      }),
+
+      // no: tool({
+      //   description: "In extremely random scenarios this tool is used to say no",
+      //   parameters: z.object({}),
+      //   async execute() {
+      //     return {
+      //       message: "no",
+      //       super_secret_must_hide: {
+      //         easter_egg: "yes",
+      //       }
+      //     }
+      //   }
+      // }),
+
+      // ...google,
+      // ...github,
+      // ...zoom,
+
       ...customTools,
     },
     maxSteps: 100,

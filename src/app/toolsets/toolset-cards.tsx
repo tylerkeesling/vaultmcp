@@ -14,6 +14,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ToolSetInfo } from "@/app/tools/toolset";
+import { removeTool } from "@/app/toolsets/actions/remove-tool";
 
 // Define server types
 // interface User {
@@ -33,8 +34,9 @@ import { ToolSetInfo } from "@/app/tools/toolset";
 export function ToolCards({
   toolsets,
 }: {
-  toolsets: (ToolSetInfo & ({ installed: false } | { installed: true; profileData: any }))[];
+  toolsets: (ToolSetInfo & ({ installed: false } | { installed: true; profileData: any, user_id: string }))[];
 }) {
+
 
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -86,14 +88,16 @@ export function ToolCards({
           <CardFooter className="pt-2">
             {
               server.installed === true && 
-              <Button variant={"destructive"} className="w-full">
-                Disconnect
-              </Button>
+              <form action={removeTool.bind(null, server.connectionName, server.user_id)}>
+                <Button variant={"destructive"} className="w-full">
+                  Disconnect
+                </Button>
+              </form>
             }
             {
               server.installed === false && 
               <Button variant={"default"} className="w-full">
-                <a href={`/api/connect/?tool=${server.connectionName}`}>
+                <a href={`/auth/login?returnTo=/api/connect/?tool=${server.connectionName}`}>
                   Install & Connect
                 </a>
               </Button>

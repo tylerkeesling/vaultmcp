@@ -1,10 +1,11 @@
-import { ToolCards } from "@/components/toolset-cards";
+import { ToolCards } from "@/app/toolsets/toolset-cards";
 import { registry } from "../tools/registry";
 import { auth0 } from "@/lib/auth0";
 import { notFound } from "next/navigation";
 import { manage } from "@/lib/auth0-manage";
 import { TOOLSET_TYPE, ToolSetInfo } from "../tools/toolset";
 import MCPDiscovery from "./new/mcp-discover";
+import { LoginOrUser } from "@/components/user-button";
 
 export default async function Home() {
   const session = await auth0.getSession();
@@ -31,22 +32,22 @@ export default async function Home() {
     const identity = userObject.identities.find(
       (identity) => identity.connection === connectionName
     );
-    const mapped: ToolSetInfo & ({ installed: false } | { installed: true; profileData: any }) = {
+    const mapped: ToolSetInfo & ({ installed: false } | { installed: true; profileData: any, user_id: string }) = {
       ...info,
       installed: false,
     };
 
     if (identity !== undefined) {
       // @ts-expect-error to be fixed
-      mapped.installed = true;
-      // @ts-expect-error to be fixed
-      mapped.profileData = identity.profileData;
+      const s = mapped as ToolSetInfo & { installed: true; profileData: any, user_id: string };
+      s.installed = true;
+      s.profileData = identity.profileData;
+      s.user_id = identity.user_id.toString(); // for github
     }
 
+    console.log(mapped);
     return mapped;
   });
-
-  console.log(toolsets);
 
   const customMcp = ((userObject.app_metadata || {}).custom_mcp || []).map(
     ({server, connection}: { server: string, connection: string}) => {
@@ -67,9 +68,10 @@ export default async function Home() {
 
       if (identity !== undefined) {
         // @ts-expect-error to be fixed
-        mapped.installed = true;
-        // @ts-expect-error to be fixed
-        mapped.profileData = identity.profileData;
+        const s = mapped as ToolSetInfo & { installed: true; profileData: any, user_id: string };
+        s.installed = true;
+        s.profileData = identity.profileData;
+        s.user_id = identity.user_id;
       }
 
       return mapped;
@@ -79,12 +81,15 @@ export default async function Home() {
   return (
     <main className="mx-auto min-h-screen w-full">
       <div className="flex h-screen w-full flex-col">
-        <div className="border-border mb-8 flex w-full flex-col items-start justify-start border-b px-6 py-4">
-          <h1 className="text-3xl font-bold">MCP Server Dashboard</h1>
-
-          <p className="text-muted-foreground">Manage access to built in tools</p>
+        <div className="border-border mb-8 flex w-full justify-start items-center border-b px-6 py-4">
+          <div>
+            <h1 className="text-3xl font-bold">VaultMCP | MCP Server Dashboard</h1>
+            <p className="text-muted-foreground">Manage access to built in tools</p>
+          </div>
+          <div className="flex-grow" />
+          <LoginOrUser />
         </div>
-        <div className="mx-auto flex h-full w-full flex-row">
+        <div className="mx-auto flex w-full flex-row">
           <div className="mx-auto flex w-full flex-col">
             <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col space-y-6 overflow-y-auto px-4">
               <ToolCards toolsets={toolsets} />

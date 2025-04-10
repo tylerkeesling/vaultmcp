@@ -2,4 +2,3 @@ terraform/
 .env
 .env*
 node_modules/
-actions/

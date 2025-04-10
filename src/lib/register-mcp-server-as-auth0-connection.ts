@@ -51,10 +51,7 @@ export class WWWAuthenticateChallengeError extends Error {
   /**
    * @ignore
    */
-  constructor(
-    message: string,
-    options: { cause: WWWAuthenticateChallenge[]; response: Response }
-  ) {
+  constructor(message: string, options: { cause: WWWAuthenticateChallenge[]; response: Response }) {
     super(message, options);
     this.name = this.constructor.name;
     this.code = WWW_AUTHENTICATE_CHALLENGE;
@@ -90,11 +87,7 @@ export interface WWWAuthenticateChallenge {
 }
 
 function unquote(value: string) {
-  if (
-    value.length >= 2 &&
-    value[0] === '"' &&
-    value[value.length - 1] === '"'
-  ) {
+  if (value.length >= 2 && value[0] === '"' && value[value.length - 1] === '"') {
     return value.slice(1, -1);
   }
 
@@ -121,9 +114,7 @@ function wwwAuth(scheme: string, params: string): WWWAuthenticateChallenge {
         arr[idx] += arr[i];
       }
     }
-    const key = arr[idx - 1]
-      .replace(/^(?:, ?)|=$/g, "")
-      .toLowerCase() as Lowercase<string>;
+    const key = arr[idx - 1].replace(/^(?:, ?)|=$/g, "").toLowerCase() as Lowercase<string>;
     // @ts-expect-error js strikes back
     parameters[key] = unquote(arr[idx]);
   }
@@ -176,17 +167,49 @@ function getAuthorizationBaseUrl(mcpUrl: string): string {
   return parsed.toString().replace(/\/$/, "");
 }
 
-function performDiscoveryCurrentDraft(serverAddress: string) {
-  return discoverOrFallback(serverAddress);
+async function performDiscoveryCurrentDraft(serverAddress: string) {
+  return {
+    issuer: await discoverOrFallback(serverAddress),
+    scopes_supported: []
+  }
 }
 
-function performWWWAuthenticateDiscovery(response: Response) {
+async function performWWWAuthenticateDiscovery(response: Response) {
   const wwwChallenges = parseWwwAuthenticateChallenges(response);
   if (!wwwChallenges) {
     throw new Error("No www-authenticate challenges were found");
   }
 
-  throw new Error("Not yet implemented");
+  if (wwwChallenges.length > 1) {
+    throw new Error("Too many www-authenticate challenges were found");
+
+  }
+  const challenge = wwwChallenges[0];
+  
+  if (challenge.scheme === "bearer") {
+    if (challenge.parameters.resource) {
+      console.log("fetching", challenge.parameters.resource);
+      const resourceMetadataRequest = await fetch(challenge.parameters.resource);
+      if (resourceMetadataRequest.status !== 200) {
+        throw new Error("Discovery failed");
+      }
+      const { authorization_servers, scopes_supported } = await resourceMetadataRequest.json();
+      try {
+        return {
+          scopes_supported,
+          issuer: await discoverOrFallback(authorization_servers[0] as string, "oauth2"),
+        }
+      } catch (e) {
+        console.log("Failed oauth2, pulling oidc");
+        return {
+          issuer: await discoverOrFallback(authorization_servers[0] as string, "oidc"),
+          scopes_supported
+        }
+      }
+    }
+  }
+
+  throw new Error("Unsupproted schema");
 }
 
 /**
@@ -194,10 +217,7 @@ function performWWWAuthenticateDiscovery(response: Response) {
  * @param serverAddress
  * @param method
  */
-async function performDiscovery(
-  serverAddress: string,
-  method: "draft" | "#195"
-) {
+async function performDiscovery(serverAddress: string, method: "draft" | "#195") {
   console.log(method, serverAddress);
 
   let response;
@@ -207,11 +227,15 @@ async function performDiscovery(
     throw new Error("Network Error");
   }
 
-  if (response.status === 401) {
+  console.log({ method }, response.status);
+
+  if (response.status === 400) {
     if (method === "#195") {
       return performWWWAuthenticateDiscovery(response);
     }
+  }
 
+  if (response.status === 401) { 
     if (method === "draft") {
       return performDiscoveryCurrentDraft(serverAddress);
     }
@@ -224,20 +248,23 @@ async function performDiscovery(
  * Attempts to discover Authorization Server Metadata per RFC8414
  * Falls back to static endpoints if discovery fails
  */
-export async function discoverOrFallback(server: string) {
+export async function discoverOrFallback(server: string, algorithm: "oauth2" | "oidc" = "oauth2") {
   try {
     const baseUrl = getAuthorizationBaseUrl(server);
     const issuer = await client.dynamicClientRegistration(
       new URL(baseUrl),
       {
-        client_name: "VaultMCP KC",
+        client_name: "VaultMCP",
         redirect_uris: ["https://auth0.vaultmcp.ai/login/callback"],
         grant_types: ["authorization_code", "refresh_token"],
         token_endpoint_auth_method: "client_secret_post",
+        ...((algorithm === "oidc")? {
+
+        } : {})
       },
       client.None,
       {
-        algorithm: "oauth2",
+        algorithm,
         timeout: 5,
         [client.customFetch]: async (url, opts) => {
           let response = await globalThis.fetch(url, opts);
@@ -277,13 +304,11 @@ export async function createAuth0OIDCConnection(
     client_id: string;
     client_secret: string;
     token_endpoint: string;
+    scopes: string[];
   },
   { owner_sub }: { owner_sub: string }
 ) {
-
-  const name = `mcp-${details.client_id}`
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]/g, "");
+  const name = `mcp-oidc-${details.client_id}`.toLowerCase().replace(/[^a-z0-9-_]/g, "");
 
   const { data: connection } = await manage.connections.create({
     name,
@@ -292,7 +317,7 @@ export async function createAuth0OIDCConnection(
       ...details, // what we got from discovery
       type: "back_channel",
       // default scopes
-      scopes: "openid profile email",
+      scopes: "openid profile email offline_access " + details.scopes.join(" "),
       token_endpoint_auth_method: "client_secret_post",
       federated_connections_access_tokens: {
         active: true,
@@ -301,7 +326,7 @@ export async function createAuth0OIDCConnection(
     metadata: {
       owner_sub: owner_sub,
       status: "un-approved",
-      issuer: details.issuer
+      issuer: details.issuer,
     },
     enabled_clients: [
       process.env.CLIENT_INITIATED_ACCOUNT_LINKING_ACTION_CLIENT_ID!,
@@ -322,12 +347,11 @@ async function createAuth0CustomSocialConnection(
     client_id: string;
     client_secret: string;
     token_endpoint: string;
+    scopes: string[]
   },
   { owner_sub }: { owner_sub: string }
 ) {
-  const name = `mcp-${details.client_id}`
-    .toLowerCase()
-    .replace(/[^a-z0-9-_]/g, "");
+  const name = `mcp-oauth-${details.client_id}`.toLowerCase().replace(/[^a-z0-9-_]/g, "");
 
   const { data: connection } = await manage.connections.create({
     name,
@@ -338,7 +362,7 @@ async function createAuth0CustomSocialConnection(
       authorizationURL: details.authorization_endpoint,
       tokenURL: details.token_endpoint,
       // For now default scopes
-      scope: "openid profile email",
+      scope: details.scopes.join(" "),
       scripts: {
         fetchUserProfile: `function(accessToken, ctx, cb) {
   // Right now there is no user-info disclosure
@@ -353,15 +377,16 @@ async function createAuth0CustomSocialConnection(
       },
       federated_connections_access_tokens: {
         active: true,
-      }
+      },
     },
     metadata: {
       owner_sub: owner_sub,
       status: "un-approved",
-      issuer: details.issuer
+      issuer: details.issuer,
     },
     enabled_clients: [
       process.env.CLIENT_INITIATED_ACCOUNT_LINKING_ACTION_CLIENT_ID!,
+      process.env.AUTH0_CLIENT_ID!,
     ],
   });
 
@@ -376,7 +401,7 @@ export async function registerMcpAndCreateAuth0Connection(
   method: string,
   ownerSub: string
 ) {
-  const issuer = await performDiscovery(mcpUrl, method as any);
+  const {issuer, scopes_supported} = await performDiscovery(mcpUrl, method as any);
 
   if (!issuer) {
     throw new Error("Discovery Failed");
@@ -385,34 +410,44 @@ export async function registerMcpAndCreateAuth0Connection(
   const client = issuer.clientMetadata();
   const server = issuer.serverMetadata();
 
-  const connection = await createAuth0CustomSocialConnection(
+  const connection = server.jwks_uri? 
+  await createAuth0OIDCConnection({
+    client_id: client.client_id,
+    client_secret: client.client_secret!,
+    authorization_endpoint: server.authorization_endpoint!,
+    issuer: server.issuer,
+    token_endpoint: server.token_endpoint!,
+    jwks_uri: server.jwks_uri!,
+    scopes: scopes_supported as string[],
+  }, {
+    owner_sub: ownerSub,
+  })
+  : await createAuth0CustomSocialConnection(
     {
       client_id: client.client_id,
       client_secret: client.client_secret!,
       authorization_endpoint: server.authorization_endpoint!,
       issuer: server.issuer,
       token_endpoint: server.token_endpoint!,
+      scopes: scopes_supported as string[],
     },
     {
       owner_sub: ownerSub,
     }
   );
 
-
   // grant this current user access
   // Get than post.
   const { data: user, status } = await manage.users.get({ id: ownerSub });
 
   if (status === 200) {
-
     if (user.identities.length > 10) {
       throw new Error("You have too many identities");
     }
 
-    
     user.app_metadata = user.app_metadata || {};
     user.app_metadata.custom_mcp = user.app_metadata.custom_mcp || [];
-    
+
     const { custom_mcp: customMcp } = user.app_metadata;
 
     if (customMcp.length > 3) {
@@ -425,11 +460,14 @@ export async function registerMcpAndCreateAuth0Connection(
       server: mcpUrl,
     });
 
-    await manage.users.update({ 
-      id: ownerSub 
-    }, { 
-      app_metadata: user.app_metadata 
-    });
+    await manage.users.update(
+      {
+        id: ownerSub,
+      },
+      {
+        app_metadata: user.app_metadata,
+      }
+    );
   }
 
   return connection;

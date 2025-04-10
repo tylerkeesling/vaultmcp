@@ -2,6 +2,7 @@ import { tool } from "ai";
 import { z } from "zod";
 import { Octokit } from "@octokit/rest";
 import { getGithubToken } from "./get-github-token";
+import { t } from "@/lib/auth0";
 
 export const get_repo_settings = tool({
   description: "Fetch basic settings and collaborators for a GitHub repo",
@@ -9,7 +10,7 @@ export const get_repo_settings = tool({
     owner: z.string(),
     repo: z.string(),
   }),
-  execute: async ({ owner, repo }) => {
+  execute: t(async ({ owner, repo }) => {
     const octokit = new Octokit({ auth: await getGithubToken() });
 
     const [repoSettings, collaborators] = await Promise.all([
@@ -28,7 +29,7 @@ export const get_repo_settings = tool({
         permissions: c.permissions,
       })),
     };
-  },
+  }),
 });
 
 export const list_repo_files = tool({
@@ -39,7 +40,7 @@ export const list_repo_files = tool({
     path: z.string().optional(),
     ref: z.string().optional(),
   }),
-  execute: async ({ owner, repo, path = "", ref }) => {
+  execute: t(async ({ owner, repo, path = "", ref }) => {
     const octokit = new Octokit({ auth: await getGithubToken() });
 
     const response = await octokit.repos.getContent({
@@ -57,7 +58,7 @@ export const list_repo_files = tool({
           size: item.size,
         }))
       : response.data;
-  },
+  }),
 });
 
 export const list_issues = tool({
@@ -67,7 +68,7 @@ export const list_issues = tool({
     repo: z.string(),
     state: z.enum(["open", "closed", "all"]).optional(),
   }),
-  execute: async ({ owner, repo, state = "open" }) => {
+  execute: t(async ({ owner, repo, state = "open" }) => {
     const octokit = new Octokit({ auth: await getGithubToken() });
 
     const response = await octokit.issues.listForRepo({
@@ -83,7 +84,7 @@ export const list_issues = tool({
       created_at: issue.created_at,
       user: issue.user?.login,
     }));
-  },
+  }),
 });
 
 export const list_pull_requests = tool({
@@ -93,7 +94,7 @@ export const list_pull_requests = tool({
     repo: z.string(),
     state: z.enum(["open", "closed", "all"]).optional(),
   }),
-  execute: async ({ owner, repo, state = "open" }) => {
+  execute: t(async ({ owner, repo, state = "open" }) => {
     const octokit = new Octokit({ auth: await getGithubToken() });
 
     const response = await octokit.pulls.list({
@@ -111,14 +112,14 @@ export const list_pull_requests = tool({
       created_at: pr.created_at,
       merged_at: pr.merged_at,
     }));
-  },
+  }),
 });
 
 // tool to fetch repos for the authenticated user
 export const get_user_repos = tool({
   description: "Get user repos from GitHub",
   parameters: z.object({}),
-  execute: async () => {
+  execute: t(async () => {
     try {
       const octokit = new Octokit({
         auth: await getGithubToken(),
@@ -138,11 +139,9 @@ export const get_user_repos = tool({
         forks: repo.forks_count,
       }));
 
-      console.log(filteredRepos);
       return filteredRepos;
-    } catch (error) {
-      console.error("Error fetching user repos:", error);
-      throw new Error("Failed to fetch user repos");
+    } catch (error:any) {
+      throw new Error("Failed to fetch user repos" + error.toString());
     }
-  },
+  }),
 });

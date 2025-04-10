@@ -2,6 +2,7 @@ import { cva, type VariantProps } from "class-variance-authority";
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
+import { Slot } from "@radix-ui/react-slot";
 
 export type ButtonState = "default" | "loading";
 
@@ -63,9 +64,26 @@ export interface ButtonProps
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, state, alignment, startIcon, endIcon, children, ...props }, ref) => {
+  (
+    { className, variant, size, state, alignment, startIcon, endIcon, children, asChild, ...props },
+    ref
+  ) => {
+    const Component = asChild ? Slot : "button";
+
+    if (asChild) {
+      return (
+        <Component
+          ref={ref}
+          className={cn(buttonVariants({ variant, size, alignment, className }))}
+          {...props}
+        >
+          {children}
+        </Component>
+      );
+    }
+
     return (
-      <button
+      <Component
         ref={ref}
         className={cn(buttonVariants({ variant, size, alignment, className }))}
         {...props}
@@ -95,7 +113,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         <span className="w-full px-0.5">{children}</span>
         {variant !== "link" && endIcon}
-      </button>
+      </Component>
     );
   }
 );

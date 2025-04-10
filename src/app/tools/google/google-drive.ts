@@ -2,13 +2,14 @@ import { z } from "zod";
 import { tool } from "ai";
 import { getGoogleAuth } from "./get-google-token";
 import * as google from "@googleapis/drive";
+import { t } from "@/lib/auth0";
 
 export const list_files = tool({
   description: "Get a list of files from Google Drive",
   parameters: z.object({
     pageSize: z.number().default(10).describe("The maximum number of files to return"),
   }),
-  execute: async ({ pageSize }) => {
+  execute: t(async ({ pageSize }) => {
     const auth = await getGoogleAuth();
     const drive = google.drive({ version: "v3", auth });
 
@@ -18,7 +19,7 @@ export const list_files = tool({
     });
 
     return response.data.files;
-  },
+  }),
 });
 
 export const get_file_metadata = tool({
@@ -26,7 +27,7 @@ export const get_file_metadata = tool({
   parameters: z.object({
     fileId: z.string().describe("The ID of the file to get metadata for"),
   }),
-  execute: async ({ fileId }) => {
+  execute: t(async ({ fileId }) => {
     const auth = await getGoogleAuth();
     const drive = google.drive({ version: "v3", auth });
 
@@ -36,7 +37,7 @@ export const get_file_metadata = tool({
     });
 
     return response.data;
-  },
+  }),
 });
 
 export const get_file_content = tool({
@@ -44,7 +45,7 @@ export const get_file_content = tool({
   parameters: z.object({
     fileId: z.string().describe("The ID of the file to get content for"),
   }),
-  execute: async ({ fileId }) => {
+  execute: t(async ({ fileId }) => {
     const auth = await getGoogleAuth();
     const drive = google.drive({ version: "v3", auth });
 
@@ -54,5 +55,5 @@ export const get_file_content = tool({
     });
 
     return response.data;
-  },
+  }),
 });
