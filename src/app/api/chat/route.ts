@@ -117,9 +117,9 @@ export async function POST(req: Request) {
       //   }
       // }),
 
-      // ...google,
-      // ...github,
-      // ...zoom,
+      ...google,
+      ...github,
+      ...zoom,
 
       ...customTools,
     },
