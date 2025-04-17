@@ -112,7 +112,7 @@ export function ChatBox() {
           id: "welcome",
           role: "assistant",
           content:
-            "Hi there! I'm your MCP assistant. I can help you interact with your servers using natural language. What would you like to know?",
+            "Hi there! I'm your time-assistant. I can help you take todos and help organize your day. What would you like to do?",
           timestamp: new Date(),
           type: "text",
         },
@@ -216,7 +216,7 @@ export function ChatBox() {
           <Avatar className="bg-muted flex h-10 w-10 items-center justify-center">
             <Bot className="h-5 w-5" />
           </Avatar>
-          <h1 className="mt-0.5 text-lg font-semibold">MCP Assistant</h1>
+          <h1 className="mt-0.5 text-lg font-semibold">Assistant</h1>
         </div>
 
         <div className="flex items-center gap-2">
@@ -526,7 +526,7 @@ export function ChatBox() {
           <div className="flex gap-2">
             <Input
               ref={inputRef}
-              placeholder="Message MCP Assistant..."
+              placeholder="Message Assistant..."
               value={input}
               onChange={handleInputChange}
               className="px-0 text-base shadow-none focus:shadow-none"

@@ -38,6 +38,8 @@ export function ToolCards({
 }) {
 
 
+  console.log(toolsets);
+
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
       {toolsets.map((server) => (
@@ -74,10 +76,10 @@ export function ToolCards({
                 <div className="flex items-center gap-3">
                   <Avatar>
                     <AvatarImage src={server.profileData.picture} alt={server.profileData.name} />
-                    <AvatarFallback>{server.profileData.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{(server.profileData.name ?? server.profileData.nickname).charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm font-medium">{server.profileData.name}</p>
+                    <p className="text-sm font-medium">{server.profileData.name ?? server.profileData.nickname}</p>
                     <p className="text-muted-foreground text-xs">{server.profileData.role}</p>
                   </div>
                 </div>

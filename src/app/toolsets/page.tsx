@@ -83,7 +83,7 @@ export default async function Home() {
       <div className="flex h-screen w-full flex-col">
         <div className="border-border mb-8 flex w-full justify-start items-center border-b px-6 py-4">
           <div>
-            <h1 className="text-3xl font-bold">VaultMCP | MCP Server Dashboard</h1>
+            <h1 className="text-3xl font-bold">Time Keeper | Tools</h1>
             <p className="text-muted-foreground">Manage access to built in tools</p>
           </div>
           <div className="flex-grow" />
@@ -94,13 +94,13 @@ export default async function Home() {
             <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col space-y-6 overflow-y-auto px-4">
               <ToolCards toolsets={toolsets} />
 
-              <h2 className="mb-6 text-3xl font-bold">Custom Tools</h2>
+              {/* <h2 className="mb-6 text-3xl font-bold">Custom Tools</h2>
               <p className="text-muted-foreground mb-8">
                 Add any MCP Server, or Manange Existing ones
               </p>
               <ToolCards toolsets={customMcp} />
 
-              {customMcp.length < 3 && <MCPDiscovery />}
+              {customMcp.length < 3 && <MCPDiscovery />} */}
             </div>
           </div>
         </div>
