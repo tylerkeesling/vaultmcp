@@ -34,10 +34,9 @@ import { removeTool } from "@/app/toolsets/actions/remove-tool";
 export function ToolCards({
   toolsets,
 }: {
-  toolsets: (ToolSetInfo & ({ installed: false } | { installed: true; profileData: any, user_id: string }))[];
+  toolsets: (ToolSetInfo &
+    ({ installed: false } | { installed: true; profileData: any; user_id: string }))[];
 }) {
-
-
   console.log(toolsets);
 
   return (
@@ -65,9 +64,7 @@ export function ToolCards({
                 </div>
               </div>
             </div>
-            <CardDescription className={"mt-5 line-clamp-2"}>
-              {server.description}
-            </CardDescription>
+            <CardDescription className={"mt-5 line-clamp-2"}>{server.description}</CardDescription>
           </CardHeader>
 
           <CardContent>
@@ -76,10 +73,14 @@ export function ToolCards({
                 <div className="flex items-center gap-3">
                   <Avatar>
                     <AvatarImage src={server.profileData.picture} alt={server.profileData.name} />
-                    <AvatarFallback>{(server.profileData.name ?? server.profileData.nickname).charAt(0)}</AvatarFallback>
+                    <AvatarFallback>
+                      {(server.profileData.name ?? server.profileData.nickname).charAt(0)}
+                    </AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="text-sm font-medium">{server.profileData.name ?? server.profileData.nickname}</p>
+                    <p className="text-sm font-medium">
+                      {server.profileData.name ?? server.profileData.nickname}
+                    </p>
                     <p className="text-muted-foreground text-xs">{server.profileData.role}</p>
                   </div>
                 </div>
@@ -88,22 +89,20 @@ export function ToolCards({
           </CardContent>
 
           <CardFooter className="pt-2">
-            {
-              server.installed === true && 
+            {server.installed === true && (
               <form action={removeTool.bind(null, server.connectionName, server.user_id)}>
                 <Button variant={"destructive"} className="w-full">
                   Disconnect
                 </Button>
               </form>
-            }
-            {
-              server.installed === false && 
+            )}
+            {server.installed === false && (
               <Button variant={"default"} className="w-full">
                 <a href={`/auth/login?returnTo=/api/connect/?tool=${server.connectionName}`}>
                   Install & Connect
                 </a>
               </Button>
-            }
+            )}
           </CardFooter>
         </Card>
       ))}

@@ -20,8 +20,8 @@
  * - `requested_connection`, the provider which is requested.
  * - `requested_connection_scope`, OPTIONAL list of scopes that are requested by the provider,
  *    if not present it will leverage the configured scopes in the Dashboard.
- * 
- * If you intend to perform custom MFA we recommend using another action prior to this to centralize and 
+ *
+ * If you intend to perform custom MFA we recommend using another action prior to this to centralize and
  * enforce those policies. This Action should be treated as a client.
  *
  * Author: Auth0 Product Architecture
@@ -29,7 +29,7 @@
  * License: MIT (https://github.com/auth0/client-initiated-account-linking/blob/main/LICENSE)
  *
  * ## Required Secrets
- * 
+ *
  *  - `AUTH0_DOMAIN` Auth0 Domain is required to access Managemnet API
  *  - `AUTH0_CLIENT_ID` Client ID for Regular Web Applicaton, this action is registered to
  *  - `AUTH0_CLIENT_SECRET` Client Secret for Regular Web Application, this action is registered to
@@ -46,36 +46,36 @@
  */
 
 // Required Modules
-const { ManagementClient, PostIdentitiesRequestProviderEnum } = require('auth0');
-const client = require('openid-client');
-const jose = require('jose');
-const { createHash } = require('node:crypto');
-const { URLSearchParams } = require('node:url');
-const debug = require('debug');
-const { hkdf } = require('@panva/hkdf');
+const { ManagementClient, PostIdentitiesRequestProviderEnum } = require("auth0");
+const client = require("openid-client");
+const jose = require("jose");
+const { createHash } = require("node:crypto");
+const { URLSearchParams } = require("node:url");
+const debug = require("debug");
+const { hkdf } = require("@panva/hkdf");
 
 const logger = {
-    error: debug('account-linking:error'),
-    info: debug('account-linking:info'),
-    verbose: debug('account-linking:verbose'),
+  error: debug("account-linking:error"),
+  info: debug("account-linking:info"),
+  verbose: debug("account-linking:verbose"),
 };
 
 // Global constants
 const SCOPES = {
-    LINK: 'link_account',
+  LINK: "link_account",
 };
-const JWKS_CACHE_KEY = 'jwks-cache';
-const MGMT_TOKEN_CACHE_KEY = 'management-token';
+const JWKS_CACHE_KEY = "jwks-cache";
+const MGMT_TOKEN_CACHE_KEY = "management-token";
 
 /**
  * This action should only run for OIDC/OAuth 2 Flows
  * @type {Protocol[]}
  */
 const ALLOWED_PROTOCOLS = [
-    'oidc-basic-profile',
-    'oidc-implicit-profile',
-    'oauth2-device-code',
-    'oidc-hybrid-profile',
+  "oidc-basic-profile",
+  "oidc-implicit-profile",
+  "oauth2-device-code",
+  "oidc-hybrid-profile",
 ];
 // End Global Constants
 
@@ -87,67 +87,61 @@ const ALLOWED_PROTOCOLS = [
  * @returns
  */
 exports.onExecutePostLogin = async (event, api) => {
-    normalizeEventConfiguration(event);
-    debug.enable(event.configuration.DEBUG || 'account-linking:*');
+  normalizeEventConfiguration(event);
+  debug.enable(event.configuration.DEBUG || "account-linking:*");
 
-    try {
-        if (isLinkingRequest(event)) {
-            const jwksCache = extractCachedJWKS(event, api);
-            const response = await validateIdTokenHint(event, api, jwksCache);
-            if (response === 'invalid') {
-                logger.error('Denying linking request ID_TOKEN_HINT provided was invalid');
-                api.access.deny(
-                    'ID_TOKEN_HINT Invalid: The `id_token_hint` does not conform to the authorization policy',
-                );
-                return;
-            }
-            
-            if (event.configuration.ENFORCE_MFA === 'yes') {
-                if (
-                    Array.isArray(event.user.enrolledFactors) &&
-                    event.user.enrolledFactors.length > 0
-                ) {
-                    if (!event.authentication?.methods?.some((method) => method.name === 'mfa')) {
-                        logger.info(
-                            'Denying linking request for %s mfa was not performed in this transaction, a previous action must use .challengeWith, .challengeWithAny',
-                            event.user.user_id,
-                        );
-                        api.access.deny('You must perform MFA for account linking');
-                        return;
-                    }
-                }
-            }
+  try {
+    if (isLinkingRequest(event)) {
+      const jwksCache = extractCachedJWKS(event, api);
+      const response = await validateIdTokenHint(event, api, jwksCache);
+      if (response === "invalid") {
+        logger.error("Denying linking request ID_TOKEN_HINT provided was invalid");
+        api.access.deny(
+          "ID_TOKEN_HINT Invalid: The `id_token_hint` does not conform to the authorization policy"
+        );
+        return;
+      }
 
-            if (
-                event.configuration.ENFORCE_EMAIL_VERIFICATION === 'yes' &&
-                event.user.email_verified === false
-            ) {
-                logger.info(
-                    'Denying linking request for %s email is not verified',
-                    event.user.user_id,
-                );
-                api.access.deny('Email Verification is required for account linking');
-                return;
-            }
-
-            // This is specific to this instance.
-            if (hasAccessToConnection(event) === false) {
-                api.access.deny("Not authorized, you are not allowed to use this MCP Server");
-                return;
-            }
-
-            return handleLinkingRequest(event, api);
+      if (event.configuration.ENFORCE_MFA === "yes") {
+        if (Array.isArray(event.user.enrolledFactors) && event.user.enrolledFactors.length > 0) {
+          if (!event.authentication?.methods?.some((method) => method.name === "mfa")) {
+            logger.info(
+              "Denying linking request for %s mfa was not performed in this transaction, a previous action must use .challengeWith, .challengeWithAny",
+              event.user.user_id
+            );
+            api.access.deny("You must perform MFA for account linking");
+            return;
+          }
         }
+      }
 
-        if (isNestedTransaction(event)) {
-            if (event.configuration.ENFORCE_MFA === 'yes') {
-                forceMFAForNestedTransaction(event, api);
-            }
-        }
-    } catch (err) {
-        logger.error('Unexpected Error, %s', err.toString());
-        api.access.deny('Unexpected Error trying to start account linking');
+      if (
+        event.configuration.ENFORCE_EMAIL_VERIFICATION === "yes" &&
+        event.user.email_verified === false
+      ) {
+        logger.info("Denying linking request for %s email is not verified", event.user.user_id);
+        api.access.deny("Email Verification is required for account linking");
+        return;
+      }
+
+      // This is specific to this instance.
+      if (hasAccessToConnection(event) === false) {
+        api.access.deny("Not authorized, you are not allowed to use this MCP Server");
+        return;
+      }
+
+      return handleLinkingRequest(event, api);
     }
+
+    if (isNestedTransaction(event)) {
+      if (event.configuration.ENFORCE_MFA === "yes") {
+        forceMFAForNestedTransaction(event, api);
+      }
+    }
+  } catch (err) {
+    logger.error("Unexpected Error, %s", err.toString());
+    api.access.deny("Unexpected Error trying to start account linking");
+  }
 };
 
 /**
@@ -158,40 +152,40 @@ exports.onExecutePostLogin = async (event, api) => {
  * @returns
  */
 exports.onContinuePostLogin = async (event, api) => {
-    normalizeEventConfiguration(event);
-    if (isLinkingRequest(event)) {
-        return handleLinkingCallback(event, api);
-    }
+  normalizeEventConfiguration(event);
+  if (isLinkingRequest(event)) {
+    return handleLinkingCallback(event, api);
+  }
 };
 
-
 /**
- * 
- * @param {PostLoginEvent} event 
+ *
+ * @param {PostLoginEvent} event
  */
 function hasAccessToConnection(event) {
-    const {
-        requested_connection: requestedConnection,
-        requested_connection_scope: requestedConnectionScope,
-    } = event.request.query;
+  const {
+    requested_connection: requestedConnection,
+    requested_connection_scope: requestedConnectionScope,
+  } = event.request.query;
 
-    // Not an MCP (aka global)
-    if (requestedConnection.startsWith("mcp-") === false) {
-        return true;
-    }
+  // Not an MCP (aka global)
+  if (requestedConnection.startsWith("mcp-") === false) {
+    return true;
+  }
 
-    if (!event.user.app_metadata) {
-        return false;
-    }
+  if (!event.user.app_metadata) {
+    return false;
+  }
 
-    if (!Array.isArray(event.user.app_metadata.custom_mcp)) {
-        return false;
-    }
+  if (!Array.isArray(event.user.app_metadata.custom_mcp)) {
+    return false;
+  }
 
-    // By flipping this, we are going to be okay for now
-    return event.user.app_metadata.custom_mcp.some(({ connection }) => connection === requestedConnection);
+  // By flipping this, we are going to be okay for now
+  return event.user.app_metadata.custom_mcp.some(
+    ({ connection }) => connection === requestedConnection
+  );
 }
-
 
 /**
  * Check's if this an Account Linking Request
@@ -199,18 +193,18 @@ function hasAccessToConnection(event) {
  * @param {PostLoginEvent} event
  */
 function normalizeEventConfiguration(event) {
-    event.configuration = event.configuration || {};
-    // prefer configuration
-    event.configuration.DEBUG =
-        event.configuration?.DEBUG || event.secrets?.DEBUG || 'account-linking:error';
-    event.configuration.ENFORCE_MFA =
-        event.configuration?.ENFORCE_MFA || event.secrets?.ENFORCE_MFA || 'no';
-    event.configuration.ENFORCE_EMAIL_VERIFICATION =
-        event.configuration?.ENFORCE_EMAIL_VERIFICATION ||
-        event.secrets?.ENFORCE_EMAIL_VERIFICATION ||
-        'no';
-    event.configuration.PIN_IP_ADDRESS =
-        event.configuration?.PIN_IP_ADDRESS || event.secrets?.PIN_IP_ADDRESS || 'no';
+  event.configuration = event.configuration || {};
+  // prefer configuration
+  event.configuration.DEBUG =
+    event.configuration?.DEBUG || event.secrets?.DEBUG || "account-linking:error";
+  event.configuration.ENFORCE_MFA =
+    event.configuration?.ENFORCE_MFA || event.secrets?.ENFORCE_MFA || "no";
+  event.configuration.ENFORCE_EMAIL_VERIFICATION =
+    event.configuration?.ENFORCE_EMAIL_VERIFICATION ||
+    event.secrets?.ENFORCE_EMAIL_VERIFICATION ||
+    "no";
+  event.configuration.PIN_IP_ADDRESS =
+    event.configuration?.PIN_IP_ADDRESS || event.secrets?.PIN_IP_ADDRESS || "no";
 }
 
 // Helper Utilities
@@ -220,11 +214,11 @@ function normalizeEventConfiguration(event) {
  * @param {PostLoginEvent} event
  */
 function isNestedTransaction(event) {
-    const { AUTH0_CLIENT_ID: clientId } = event.secrets;
+  const { AUTH0_CLIENT_ID: clientId } = event.secrets;
 
-    if (event.client.client_id === clientId) {
-        return true;
-    }
+  if (event.client.client_id === clientId) {
+    return true;
+  }
 }
 
 /**
@@ -233,18 +227,18 @@ function isNestedTransaction(event) {
  * @param {PostLoginAPI} api
  */
 function forceMFAForNestedTransaction(event, api) {
-    if (Array.isArray(event.user.enrolledFactors) && event.user.enrolledFactors.length > 0) {
-        api.authentication.challengeWithAny(
-            event.user.enrolledFactors.map((factor) =>
-                factor.method === 'sms'
-                    ? {
-                          type: 'phone',
-                          options: { preferredMethod: 'sms' },
-                      }
-                    : { type: factor.method },
-            ),
-        );
-    }
+  if (Array.isArray(event.user.enrolledFactors) && event.user.enrolledFactors.length > 0) {
+    api.authentication.challengeWithAny(
+      event.user.enrolledFactors.map((factor) =>
+        factor.method === "sms"
+          ? {
+              type: "phone",
+              options: { preferredMethod: "sms" },
+            }
+          : { type: factor.method }
+      )
+    );
+  }
 }
 
 /**
@@ -253,40 +247,40 @@ function forceMFAForNestedTransaction(event, api) {
  * @param {PostLoginEvent} event
  */
 function isLinkingRequest(event) {
-    if (!event.transaction || !event.transaction.protocol) {
-        logger.verbose('Skipping because no transaction');
-        return false;
+  if (!event.transaction || !event.transaction.protocol) {
+    logger.verbose("Skipping because no transaction");
+    return false;
+  }
+
+  if (ALLOWED_PROTOCOLS.includes(event.transaction.protocol) === false) {
+    logger.verbose("Skipping because protocol not allowed");
+    return false;
+  }
+
+  const { requested_scopes } = event.transaction;
+
+  if (!Array.isArray(requested_scopes)) {
+    logger.verbose("Skipping because requested_scopes not found");
+    return false;
+  }
+
+  if (!requested_scopes.includes(SCOPES.LINK)) {
+    logger.verbose("Skipping because requested_scopes does not contain link_account");
+    return false;
+  }
+
+  const { ALLOWED_CLIENT_IDS } = event.secrets;
+
+  if (ALLOWED_CLIENT_IDS !== undefined) {
+    const allowedClientIds = ALLOWED_CLIENT_IDS.split(",");
+
+    if (allowedClientIds.includes(event.client.client_id) === false) {
+      logger.error("Account Linking is not allowed for %s", event.client.client_id);
+      return false;
     }
+  }
 
-    if (ALLOWED_PROTOCOLS.includes(event.transaction.protocol) === false) {
-        logger.verbose('Skipping because protocol not allowed');
-        return false;
-    }
-
-    const { requested_scopes } = event.transaction;
-
-    if (!Array.isArray(requested_scopes)) {
-        logger.verbose('Skipping because requested_scopes not found');
-        return false;
-    }
-
-    if (!requested_scopes.includes(SCOPES.LINK)) {
-        logger.verbose('Skipping because requested_scopes does not contain link_account');
-        return false;
-    }
-
-    const { ALLOWED_CLIENT_IDS } = event.secrets;
-
-    if (ALLOWED_CLIENT_IDS !== undefined) {
-        const allowedClientIds = ALLOWED_CLIENT_IDS.split(',');
-
-        if (allowedClientIds.includes(event.client.client_id) === false) {
-            logger.error('Account Linking is not allowed for %s', event.client.client_id);
-            return false;
-        }
-    }
-
-    return true;
+  return true;
 }
 
 /**
@@ -295,44 +289,44 @@ function isLinkingRequest(event) {
  * @param {PostLoginAPI} api
  */
 async function handleLinkingRequest(event, api) {
-    const issuer = getAuth0Issuer(event);
+  const issuer = getAuth0Issuer(event);
 
-    const {
-        requested_connection: requestedConnection,
-        requested_connection_scope: requestedConnectionScope,
-    } = event.request.query;
+  const {
+    requested_connection: requestedConnection,
+    requested_connection_scope: requestedConnectionScope,
+  } = event.request.query;
 
-    const codeVerifier = await getUniqueTransaction(event);
-    const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
-    const jwksCache = extractCachedJWKS(event, api);
-    const config = await getOpenIDClientConfig(event, api, jwksCache);
+  const codeVerifier = await getUniqueTransaction(event);
+  const codeChallenge = await client.calculatePKCECodeChallenge(codeVerifier);
+  const jwksCache = extractCachedJWKS(event, api);
+  const config = await getOpenIDClientConfig(event, api, jwksCache);
 
-    logger.info(
-        'Generating authorization request for %s provider %s',
-        event.user.user_id,
-        requestedConnection,
-    );
+  logger.info(
+    "Generating authorization request for %s provider %s",
+    event.user.user_id,
+    requestedConnection
+  );
 
-    /**
-     * @type {Record<string, string>}
-     */
-    const authorizationParameters = {
-        redirect_uri: new URL('/continue', issuer).toString(),
-        code_challenge: codeChallenge,
-        code_challenge_method: 'S256',
-        connection: requestedConnection,
-        scope: 'openid profile email', // this scope is for the auth0 transaction
-        max_age: '0',
-    };
+  /**
+   * @type {Record<string, string>}
+   */
+  const authorizationParameters = {
+    redirect_uri: new URL("/continue", issuer).toString(),
+    code_challenge: codeChallenge,
+    code_challenge_method: "S256",
+    connection: requestedConnection,
+    scope: "openid profile email", // this scope is for the auth0 transaction
+    max_age: "0",
+  };
 
-    if (requestedConnectionScope) {
-        // This scope is for the transaction
-        authorizationParameters['connection_scope'] = requestedConnectionScope;
-    }
+  if (requestedConnectionScope) {
+    // This scope is for the transaction
+    authorizationParameters["connection_scope"] = requestedConnectionScope;
+  }
 
-    logger.info('Requesting authorization with provider %s', requestedConnection);
-    const authorizeUrl = client.buildAuthorizationUrl(config, authorizationParameters);
-    api.redirect.sendUserTo(authorizeUrl.toString());
+  logger.info("Requesting authorization with provider %s", requestedConnection);
+  const authorizeUrl = client.buildAuthorizationUrl(config, authorizationParameters);
+  api.redirect.sendUserTo(authorizeUrl.toString());
 }
 
 /**
@@ -341,47 +335,47 @@ async function handleLinkingRequest(event, api) {
  * @param {PostLoginAPI} api
  */
 async function handleLinkingCallback(event, api) {
-    const callbackUrl = getCallbackUrl(event);
-    const jwksCacheInput = extractCachedJWKS(event, api);
-    const config = await getOpenIDClientConfig(event, api, jwksCacheInput);
-    const codeVerifier = await getUniqueTransaction(event);
-    let subject;
+  const callbackUrl = getCallbackUrl(event);
+  const jwksCacheInput = extractCachedJWKS(event, api);
+  const config = await getOpenIDClientConfig(event, api, jwksCacheInput);
+  const codeVerifier = await getUniqueTransaction(event);
+  let subject;
 
-    try {
-        logger.info('Attempting callback verification for %s', event.user.user_id);
+  try {
+    logger.info("Attempting callback verification for %s", event.user.user_id);
 
-        const tokens = await client.authorizationCodeGrant(config, callbackUrl, {
-            expectedState: client.skipStateCheck,
-            idTokenExpected: true,
-            maxAge: 60,
-            pkceCodeVerifier: codeVerifier,
-        });
+    const tokens = await client.authorizationCodeGrant(config, callbackUrl, {
+      expectedState: client.skipStateCheck,
+      idTokenExpected: true,
+      maxAge: 60,
+      pkceCodeVerifier: codeVerifier,
+    });
 
-        const jwksCacheExport = client.getJwksCache(config);
-        // Store cached JWTs
-        if (jwksCacheExport && jwksCacheExport.uat !== jwksCacheInput?.uat) {
-            storeCachedJWKS(event, api, jwksCacheExport);
-        }
-
-        const claims = tokens.claims();
-        if (!claims) {
-            console.warn('Failed: No claims');
-            return;
-        }
-
-        subject = claims['sub'];
-        logger.info('Callback success for %s', event.user.user_id);
-    } catch (err) {
-        logger.error(
-            'Failed to complete account linking for %s: %s',
-            event.user.user_id,
-            err.toString(),
-        );
-        api.access.deny('Failed to complete account linking');
-        return;
+    const jwksCacheExport = client.getJwksCache(config);
+    // Store cached JWTs
+    if (jwksCacheExport && jwksCacheExport.uat !== jwksCacheInput?.uat) {
+      storeCachedJWKS(event, api, jwksCacheExport);
     }
 
-    return linkAndMakePrimary(event, api, subject);
+    const claims = tokens.claims();
+    if (!claims) {
+      console.warn("Failed: No claims");
+      return;
+    }
+
+    subject = claims["sub"];
+    logger.info("Callback success for %s", event.user.user_id);
+  } catch (err) {
+    logger.error(
+      "Failed to complete account linking for %s: %s",
+      event.user.user_id,
+      err.toString()
+    );
+    api.access.deny("Failed to complete account linking");
+    return;
+  }
+
+  return linkAndMakePrimary(event, api, subject);
 }
 
 /**
@@ -393,21 +387,21 @@ async function handleLinkingCallback(event, api) {
  * @returns {jose.ExportedJWKSCache | undefined} either a cached jwks or null. If this fails it'll fail gracefully
  */
 function extractCachedJWKS(event, api) {
-    try {
-        const cachedJWKCache = api.cache.get(JWKS_CACHE_KEY);
-        if (!cachedJWKCache) {
-            return undefined;
-        }
-        /**
-         * @type {jose.ExportedJWKSCache}
-         */
-        const value = JSON.parse(cachedJWKCache.value);
-        return value;
-    } catch (err) {
-        // We should default to return here
-        // we can always fetch as fallback
+  try {
+    const cachedJWKCache = api.cache.get(JWKS_CACHE_KEY);
+    if (!cachedJWKCache) {
+      return undefined;
     }
-    return undefined;
+    /**
+     * @type {jose.ExportedJWKSCache}
+     */
+    const value = JSON.parse(cachedJWKCache.value);
+    return value;
+  } catch (err) {
+    // We should default to return here
+    // we can always fetch as fallback
+  }
+  return undefined;
 }
 
 /**
@@ -418,7 +412,7 @@ function extractCachedJWKS(event, api) {
  * @param {jose.ExportedJWKSCache} updated Exported JWKS cache
  */
 function storeCachedJWKS(event, api, updated) {
-    api.cache.set(JWKS_CACHE_KEY, JSON.stringify(updated));
+  api.cache.set(JWKS_CACHE_KEY, JSON.stringify(updated));
 }
 
 /**
@@ -432,23 +426,23 @@ function storeCachedJWKS(event, api, updated) {
  * @returns {Promise<client.Configuration>}
  */
 async function getOpenIDClientConfig(event, api, jwksCacheInput) {
-    const issuer = getAuth0Issuer(event);
-    const { AUTH0_CLIENT_ID: clientId, AUTH0_CLIENT_SECRET: clientSecret } = event.secrets;
-    const config = await client.discovery(
-        issuer,
-        clientId,
-        {},
-        client.ClientSecretPost(clientSecret),
-        {
-            algorithm: 'oidc',
-        },
-    );
-
-    if (jwksCacheInput !== undefined) {
-        client.setJwksCache(config, jwksCacheInput);
+  const issuer = getAuth0Issuer(event);
+  const { AUTH0_CLIENT_ID: clientId, AUTH0_CLIENT_SECRET: clientSecret } = event.secrets;
+  const config = await client.discovery(
+    issuer,
+    clientId,
+    {},
+    client.ClientSecretPost(clientSecret),
+    {
+      algorithm: "oidc",
     }
+  );
 
-    return config;
+  if (jwksCacheInput !== undefined) {
+    client.setJwksCache(config, jwksCacheInput);
+  }
+
+  return config;
 }
 
 /**
@@ -458,10 +452,10 @@ async function getOpenIDClientConfig(event, api, jwksCacheInput) {
  * @returns {URL}
  */
 function getCallbackUrl(event) {
-    const callbackUrl = new URL('/continue', getAuth0Issuer(event));
-    callbackUrl.search = new URLSearchParams(event.request.query).toString();
+  const callbackUrl = new URL("/continue", getAuth0Issuer(event));
+  callbackUrl.search = new URLSearchParams(event.request.query).toString();
 
-    return callbackUrl;
+  return callbackUrl;
 }
 
 /**
@@ -479,37 +473,37 @@ function getCallbackUrl(event) {
  * @returns {Promise<"invalid"|"valid">} `valid` if all constraints match, `invalid` if any constraint fail,
  */
 async function validateIdTokenHint(event, api, jwksCache) {
-    const { id_token_hint: idTokenHint } = event.request.query;
-    const issuer = getAuth0Issuer(event);
+  const { id_token_hint: idTokenHint } = event.request.query;
+  const issuer = getAuth0Issuer(event);
 
-    if (!idTokenHint || typeof idTokenHint !== 'string') {
-        return 'invalid';
-    }
+  if (!idTokenHint || typeof idTokenHint !== "string") {
+    return "invalid";
+  }
 
-    const { client_id: clientId } = event.client;
-    const { user_id: userId } = event.user;
+  const { client_id: clientId } = event.client;
+  const { user_id: userId } = event.user;
 
-    const jwksUrl = new URL('/.well-known/jwks.json', issuer);
-    const JWKS = jose.createRemoteJWKSet(jwksUrl, {
-        [jose.jwksCache]: jwksCache,
+  const jwksUrl = new URL("/.well-known/jwks.json", issuer);
+  const JWKS = jose.createRemoteJWKSet(jwksUrl, {
+    [jose.jwksCache]: jwksCache,
+  });
+
+  try {
+    const payload = await jose.jwtVerify(idTokenHint, JWKS, {
+      algorithms: ["RS256"],
+      audience: clientId,
+      subject: userId,
+      issuer: issuer.toString(),
+      maxTokenAge: "10m",
     });
 
-    try {
-        const payload = await jose.jwtVerify(idTokenHint, JWKS, {
-            algorithms: ['RS256'],
-            audience: clientId,
-            subject: userId,
-            issuer: issuer.toString(),
-            maxTokenAge: '10m',
-        });
+    return "valid";
+  } catch (err) {
+    //
+    logger.error("ID_TOKEN_HINT validation failure %s", err.toString());
+  }
 
-        return 'valid';
-    } catch (err) {
-        //
-        logger.error('ID_TOKEN_HINT validation failure %s', err.toString());
-    }
-
-    return 'invalid';
+  return "invalid";
 }
 
 /**
@@ -520,48 +514,45 @@ async function validateIdTokenHint(event, api, jwksCache) {
  * @returns
  */
 async function getManagementClient(event, api) {
-    let { value: token } = api.cache.get(MGMT_TOKEN_CACHE_KEY) || {};
+  let { value: token } = api.cache.get(MGMT_TOKEN_CACHE_KEY) || {};
 
-    if (!token) {
-        logger.verbose('Attempting to obtain token for management api');
-        // we don't need the JWKS here.
-        const config = await getOpenIDClientConfig(event, api, undefined);
+  if (!token) {
+    logger.verbose("Attempting to obtain token for management api");
+    // we don't need the JWKS here.
+    const config = await getOpenIDClientConfig(event, api, undefined);
 
-        try {
-            const tokenset = await client.clientCredentialsGrant(config, {
-                audience: new URL('/api/v2/', `https://${event.secrets.AUTH0_DOMAIN}`).toString(),
-            });
+    try {
+      const tokenset = await client.clientCredentialsGrant(config, {
+        audience: new URL("/api/v2/", `https://${event.secrets.AUTH0_DOMAIN}`).toString(),
+      });
 
-            const { access_token: accessToken } = tokenset;
-            token = accessToken;
+      const { access_token: accessToken } = tokenset;
+      token = accessToken;
 
-            if (!token) {
-                logger.error('No access token was returned by the server for Management API');
-                return null;
-            }
+      if (!token) {
+        logger.error("No access token was returned by the server for Management API");
+        return null;
+      }
 
-            const result = api.cache.set(MGMT_TOKEN_CACHE_KEY, token, {
-                ttl: (tokenset.expires_in - 60) * 1000,
-            });
+      const result = api.cache.set(MGMT_TOKEN_CACHE_KEY, token, {
+        ttl: (tokenset.expires_in - 60) * 1000,
+      });
 
-            if (result?.type === 'error') {
-                logger.error(
-                    'failed to set the token in the cache with error code: %s',
-                    result.code,
-                );
-            }
-        } catch (err) {
-            logger.error('failed calling cc grant %s', err.toString());
-            return null;
-        }
+      if (result?.type === "error") {
+        logger.error("failed to set the token in the cache with error code: %s", result.code);
+      }
+    } catch (err) {
+      logger.error("failed calling cc grant %s", err.toString());
+      return null;
     }
+  }
 
-    logger.info('Created a management api client');
+  logger.info("Created a management api client");
 
-    return new ManagementClient({
-        domain: getAuth0Issuer(event).hostname,
-        token,
-    });
+  return new ManagementClient({
+    domain: getAuth0Issuer(event).hostname,
+    token,
+  });
 }
 
 /**
@@ -570,15 +561,13 @@ async function getManagementClient(event, api) {
  * @returns {{provider: PostIdentitiesRequestProviderEnum, user_id: string}}
  */
 function splitSubClaim(sub) {
-    const firstPipeIndex = sub.indexOf('|');
-    const provider = /** @type {PostIdentitiesRequestProviderEnum} */ (
-        sub.slice(0, firstPipeIndex)
-    );
+  const firstPipeIndex = sub.indexOf("|");
+  const provider = /** @type {PostIdentitiesRequestProviderEnum} */ (sub.slice(0, firstPipeIndex));
 
-    return {
-        provider,
-        user_id: sub.slice(firstPipeIndex + 1),
-    };
+  return {
+    provider,
+    user_id: sub.slice(firstPipeIndex + 1),
+  };
 }
 
 /**
@@ -587,7 +576,7 @@ function splitSubClaim(sub) {
  * @param {PostLoginEvent} event
  */
 function getAuth0Issuer(event) {
-    return new URL(`https://${event.request.hostname}/`);
+  return new URL(`https://${event.request.hostname}/`);
 }
 
 /**
@@ -599,39 +588,39 @@ function getAuth0Issuer(event) {
  * @param {PostLoginEvent} event
  */
 async function getUniqueTransaction(event) {
-    const { ACTION_SECRET: appSecret } = event.secrets;
-    const { PIN_IP_ADDRESS: pinIp } = event.configuration;
-    // eslint-disable-next-line no-unused-vars
-    const { protocol, requested_scopes, response_type, redirect_uri, state, locale } =
-        /**{@type {Transaction}} */ event.transaction;
-    const { id: sessionId } = event.session || {};
-    const stableTransaction = [
-        event.user.user_id,
-        protocol,
-        requested_scopes,
-        response_type,
-        redirect_uri,
-        state,
-        locale,
-        sessionId,
-    ];
+  const { ACTION_SECRET: appSecret } = event.secrets;
+  const { PIN_IP_ADDRESS: pinIp } = event.configuration;
+  // eslint-disable-next-line no-unused-vars
+  const { protocol, requested_scopes, response_type, redirect_uri, state, locale } =
+    /**{@type {Transaction}} */ event.transaction;
+  const { id: sessionId } = event.session || {};
+  const stableTransaction = [
+    event.user.user_id,
+    protocol,
+    requested_scopes,
+    response_type,
+    redirect_uri,
+    state,
+    locale,
+    sessionId,
+  ];
 
-    if (pinIp) {
-        stableTransaction.push(event.request.ip);
-    }
+  if (pinIp) {
+    stableTransaction.push(event.request.ip);
+  }
 
-    const transactionInfo = JSON.stringify(stableTransaction);
-    const transactionHotfix = sha256(transactionInfo);
+  const transactionInfo = JSON.stringify(stableTransaction);
+  const transactionHotfix = sha256(transactionInfo);
 
-    const derivedKey = await hkdf(
-        'sha256',
-        transactionHotfix, // ikm
-        appSecret, // salt
-        transactionInfo, // info
-        64, // len
-    );
+  const derivedKey = await hkdf(
+    "sha256",
+    transactionHotfix, // ikm
+    appSecret, // salt
+    transactionInfo, // info
+    64 // len
+  );
 
-    return Buffer.from(derivedKey).toString('base64url');
+  return Buffer.from(derivedKey).toString("base64url");
 }
 
 /**
@@ -642,41 +631,33 @@ async function getUniqueTransaction(event) {
  * @returns
  */
 async function linkAndMakePrimary(event, api, secondaryIdentityUserId) {
-    const primaryUserId = event.user.user_id;
+  const primaryUserId = event.user.user_id;
+  logger.info("Attempting account linking for %s with %s", primaryUserId, secondaryIdentityUserId);
+
+  if (primaryUserId === secondaryIdentityUserId) {
     logger.info(
-        'Attempting account linking for %s with %s',
-        primaryUserId,
-        secondaryIdentityUserId,
+      "Attempting already performed since %s === %s",
+      primaryUserId,
+      secondaryIdentityUserId
     );
+    return;
+  }
 
-    if (primaryUserId === secondaryIdentityUserId) {
-        logger.info(
-            'Attempting already performed since %s === %s',
-            primaryUserId,
-            secondaryIdentityUserId,
-        );
-        return;
-    }
+  const client = await getManagementClient(event, api);
 
-    const client = await getManagementClient(event, api);
+  if (client === null) {
+    api.access.deny("Failed to link users");
+    return;
+  }
 
-    if (client === null) {
-        api.access.deny('Failed to link users');
-        return;
-    }
-
-    try {
-        await client.users.link({ id: primaryUserId }, splitSubClaim(secondaryIdentityUserId));
-        logger.info(
-            'link successful current user %s to %s',
-            primaryUserId,
-            secondaryIdentityUserId,
-        );
-        // api.authentication.setPrimaryUser(upstream_sub);
-    } catch (err) {
-        logger.error(`unable to link, no changes. error: ${JSON.stringify(err)}`);
-        return api.access.deny('error linking');
-    }
+  try {
+    await client.users.link({ id: primaryUserId }, splitSubClaim(secondaryIdentityUserId));
+    logger.info("link successful current user %s to %s", primaryUserId, secondaryIdentityUserId);
+    // api.authentication.setPrimaryUser(upstream_sub);
+  } catch (err) {
+    logger.error(`unable to link, no changes. error: ${JSON.stringify(err)}`);
+    return api.access.deny("error linking");
+  }
 }
 
 /**
@@ -684,7 +665,7 @@ async function linkAndMakePrimary(event, api, secondaryIdentityUserId) {
  * @param {string} str
  */
 function sha256(str) {
-    return createHash('sha256').update(str).digest('base64url');
+  return createHash("sha256").update(str).digest("base64url");
 }
 
 // End: Helper Utilities

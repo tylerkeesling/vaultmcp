@@ -170,8 +170,8 @@ function getAuthorizationBaseUrl(mcpUrl: string): string {
 async function performDiscoveryCurrentDraft(serverAddress: string) {
   return {
     issuer: await discoverOrFallback(serverAddress),
-    scopes_supported: []
-  }
+    scopes_supported: [],
+  };
 }
 
 async function performWWWAuthenticateDiscovery(response: Response) {
@@ -182,10 +182,9 @@ async function performWWWAuthenticateDiscovery(response: Response) {
 
   if (wwwChallenges.length > 1) {
     throw new Error("Too many www-authenticate challenges were found");
-
   }
   const challenge = wwwChallenges[0];
-  
+
   if (challenge.scheme === "bearer") {
     if (challenge.parameters.resource) {
       console.log("fetching", challenge.parameters.resource);
@@ -198,13 +197,13 @@ async function performWWWAuthenticateDiscovery(response: Response) {
         return {
           scopes_supported,
           issuer: await discoverOrFallback(authorization_servers[0] as string, "oauth2"),
-        }
+        };
       } catch (e) {
         console.log("Failed oauth2, pulling oidc");
         return {
           issuer: await discoverOrFallback(authorization_servers[0] as string, "oidc"),
-          scopes_supported
-        }
+          scopes_supported,
+        };
       }
     }
   }
@@ -235,7 +234,7 @@ async function performDiscovery(serverAddress: string, method: "draft" | "#195")
     }
   }
 
-  if (response.status === 401) { 
+  if (response.status === 401) {
     if (method === "draft") {
       return performDiscoveryCurrentDraft(serverAddress);
     }
@@ -258,9 +257,7 @@ export async function discoverOrFallback(server: string, algorithm: "oauth2" | "
         redirect_uris: ["https://auth0.vaultmcp.ai/login/callback"],
         grant_types: ["authorization_code", "refresh_token"],
         token_endpoint_auth_method: "client_secret_post",
-        ...((algorithm === "oidc")? {
-
-        } : {})
+        ...(algorithm === "oidc" ? {} : {}),
       },
       client.None,
       {
@@ -347,7 +344,7 @@ async function createAuth0CustomSocialConnection(
     client_id: string;
     client_secret: string;
     token_endpoint: string;
-    scopes: string[]
+    scopes: string[];
   },
   { owner_sub }: { owner_sub: string }
 ) {
@@ -401,7 +398,7 @@ export async function registerMcpAndCreateAuth0Connection(
   method: string,
   ownerSub: string
 ) {
-  const {issuer, scopes_supported} = await performDiscovery(mcpUrl, method as any);
+  const { issuer, scopes_supported } = await performDiscovery(mcpUrl, method as any);
 
   if (!issuer) {
     throw new Error("Discovery Failed");
@@ -410,31 +407,34 @@ export async function registerMcpAndCreateAuth0Connection(
   const client = issuer.clientMetadata();
   const server = issuer.serverMetadata();
 
-  const connection = server.jwks_uri? 
-  await createAuth0OIDCConnection({
-    client_id: client.client_id,
-    client_secret: client.client_secret!,
-    authorization_endpoint: server.authorization_endpoint!,
-    issuer: server.issuer,
-    token_endpoint: server.token_endpoint!,
-    jwks_uri: server.jwks_uri!,
-    scopes: scopes_supported as string[],
-  }, {
-    owner_sub: ownerSub,
-  })
-  : await createAuth0CustomSocialConnection(
-    {
-      client_id: client.client_id,
-      client_secret: client.client_secret!,
-      authorization_endpoint: server.authorization_endpoint!,
-      issuer: server.issuer,
-      token_endpoint: server.token_endpoint!,
-      scopes: scopes_supported as string[],
-    },
-    {
-      owner_sub: ownerSub,
-    }
-  );
+  const connection = server.jwks_uri
+    ? await createAuth0OIDCConnection(
+        {
+          client_id: client.client_id,
+          client_secret: client.client_secret!,
+          authorization_endpoint: server.authorization_endpoint!,
+          issuer: server.issuer,
+          token_endpoint: server.token_endpoint!,
+          jwks_uri: server.jwks_uri!,
+          scopes: scopes_supported as string[],
+        },
+        {
+          owner_sub: ownerSub,
+        }
+      )
+    : await createAuth0CustomSocialConnection(
+        {
+          client_id: client.client_id,
+          client_secret: client.client_secret!,
+          authorization_endpoint: server.authorization_endpoint!,
+          issuer: server.issuer,
+          token_endpoint: server.token_endpoint!,
+          scopes: scopes_supported as string[],
+        },
+        {
+          owner_sub: ownerSub,
+        }
+      );
 
   // grant this current user access
   // Get than post.

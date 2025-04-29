@@ -54,10 +54,7 @@ export const searchTodo = tool({
         AND: [
           search
             ? {
-                OR: [
-                  { title: { contains: search } },
-                  { description: { contains: search } },
-                ],
+                OR: [{ title: { contains: search } }, { description: { contains: search } }],
               }
             : {},
           tags

@@ -8,8 +8,9 @@ import { NextResponse } from "next/server";
  */
 import { tools as google } from "@/app/tools/google";
 import { tools as github } from "@/app/tools/github";
-import { tools as zoom } from '@/app/tools/zoom';
-import * as todos from '@/app/tools/todos/todos';
+import { tools as zoom } from "@/app/tools/zoom";
+import { getUserInfoTool } from "@/app/tools/user-info/user-info";
+import * as todos from "@/app/tools/todos/todos";
 
 import { z } from "zod";
 
@@ -17,20 +18,21 @@ import { z } from "zod";
 export const maxDuration = 30;
 
 export async function POST(req: Request) {
-  // const session = await auth0.getSession();
+  const session = await auth0.getSession();
 
-  // if (!session) {
-  //   return new NextResponse("Unauthorized", {
-  //     status: 401,
-  //     statusText: "Unauthorized",
-  //   });
-  // }
+  if (!session) {
+    return new NextResponse("Unauthorized", {
+      status: 401,
+      statusText: "Unauthorized",
+    });
+  }
 
   const { messages } = await req.json();
 
   const result = streamText({
     model: openai("gpt-4o"),
-    system: "You are helpful agent that can help customers organize their day to day activities, you can note todos, keep track of them and interact with other tools they use daily",
+    system:
+      "You are helpful agent that can help customers organize their day to day activities, you can note todos, keep track of them and interact with other tools they use daily",
     messages,
     tools: {
       current_date: tool({
@@ -43,12 +45,11 @@ export async function POST(req: Request) {
 
       // First party tool
       ...todos,
-
+      getUserInfoTool,
       // Everyday apps
       ...google,
       ...github,
       // ...zoom,
-
     },
     maxSteps: 100,
   });

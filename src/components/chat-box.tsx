@@ -345,7 +345,7 @@ export function ChatBox() {
                                   {...props}
                                 />
                               ),
-                              // @ts-expect-error react 
+                              // @ts-expect-error react
                               code({
                                 ref,
                                 className,

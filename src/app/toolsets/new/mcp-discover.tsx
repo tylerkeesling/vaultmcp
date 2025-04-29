@@ -1,67 +1,82 @@
-"use client"
+"use client";
 
-import { useState, useRef, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react"
-import { discoverMCPTools } from "./actions"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { useState, useRef, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { discoverMCPTools } from "./actions";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 /**
  *
  * @returns
  */
 export default function MCPDiscovery() {
-  const [isConnecting, setIsConnecting] = useState(false)
-  const [tools, setTools] = useState<Record<string, any> | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [isConnecting, setIsConnecting] = useState(false);
+  const [tools, setTools] = useState<Record<string, any> | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const [authzNegotationMethod, setAuthzNegotiationMethod] = useState<"draft" | "#195" | "#205">("draft")
-  const [url, setUrl] = useState("")
+  const [authzNegotationMethod, setAuthzNegotiationMethod] = useState<"draft" | "#195" | "#205">(
+    "draft"
+  );
+  const [url, setUrl] = useState("");
 
-  const [logs, setLogs] = useState<Array<{ type: string; message: string }>>([])
-  const logsEndRef = useRef<HTMLDivElement>(null)
+  const [logs, setLogs] = useState<Array<{ type: string; message: string }>>([]);
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll logs to bottom
   useEffect(() => {
     if (logsEndRef.current) {
-      logsEndRef.current.scrollIntoView({ behavior: "smooth" })
+      logsEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-  }, [logs])
+  }, [logs]);
 
   const handleDiscoverTools = async () => {
     if (!url) {
-      setError("Please enter an MCP server URL")
-      return
+      setError("Please enter an MCP server URL");
+      return;
     }
 
-    setIsConnecting(true)
-    setError(null)
-    setTools(null)
-    setLogs([])
+    setIsConnecting(true);
+    setError(null);
+    setTools(null);
+    setLogs([]);
 
     try {
       // Add initial log
-      setLogs([{ type: "status", message: `Connecting to ${url}...` }])
+      setLogs([{ type: "status", message: `Connecting to ${url}...` }]);
 
       // Call the server action directly
       const response = await discoverMCPTools({
         authzNegotationMethod,
         url: url,
-      })
+      });
 
       // Check if the response contains an error
       if (response.error) {
-        setError(`${response.error}: ${response.error_description}`)
+        setError(`${response.error}: ${response.error_description}`);
         setLogs((prev) => [
           ...prev,
           {
             type: "error",
             message: `Error: ${response.error_description}`,
           },
-        ])
+        ]);
       } else {
         // Success case
         setLogs((prev) => [
@@ -70,24 +85,26 @@ export default function MCPDiscovery() {
             type: "status",
             message: `Successfully connected to MCP server. Connection name: ${response.name}`,
           },
-        ])
+        ]);
 
         // Set the tools with the response
-        setTools({ name: response.name })
+        setTools({ name: response.name });
       }
     } catch (err) {
-      setError(`Failed to connect to MCP server: ${err instanceof Error ? err.message : String(err)}`)
+      setError(
+        `Failed to connect to MCP server: ${err instanceof Error ? err.message : String(err)}`
+      );
       setLogs((prev) => [
         ...prev,
         {
           type: "error",
           message: `Failed to connect to MCP server: ${err instanceof Error ? err.message : String(err)}`,
         },
-      ])
+      ]);
     } finally {
-      setIsConnecting(false)
+      setIsConnecting(false);
     }
-  }
+  };
 
   return (
     <Card className="max-w-3xl">
@@ -100,7 +117,7 @@ export default function MCPDiscovery() {
           <div className="flex gap-2">
             <Select
               onValueChange={(value) => {
-                setAuthzNegotiationMethod(value as "draft" | "#195" | "#205")
+                setAuthzNegotiationMethod(value as "draft" | "#195" | "#205");
               }}
               value={authzNegotationMethod}
             >
@@ -166,7 +183,9 @@ export default function MCPDiscovery() {
           {tools && (
             <div className="mt-4">
               <h3 className="mb-2 text-lg font-medium">Discovered Tools</h3>
-              <pre className="bg-muted max-h-96 overflow-auto rounded-md p-4">{JSON.stringify(tools, null, 2)}</pre>
+              <pre className="bg-muted max-h-96 overflow-auto rounded-md p-4">
+                {JSON.stringify(tools, null, 2)}
+              </pre>
             </div>
           )}
         </div>
@@ -177,6 +196,5 @@ export default function MCPDiscovery() {
         </p>
       </CardFooter>
     </Card>
-  )
+  );
 }
-

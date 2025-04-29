@@ -4,7 +4,7 @@ import { getGoogleAuth } from "./get-google-token";
 import * as google from "@googleapis/calendar";
 import { t } from "@/lib/auth0";
 
-export const create_google_event =  tool({
+export const create_google_event = tool({
   description: "Create an event in Google Calendar",
   parameters: z.object({
     calendarId: z.string().describe("The calendar ID to create the event in"),

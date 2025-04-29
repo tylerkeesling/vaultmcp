@@ -5,10 +5,10 @@ export default function Home() {
   return (
     <main className="mx-auto min-h-screen w-full">
       <div className="flex h-screen w-full flex-col">
-        <div className="border-border tems-start flex w-full justify-start items-center border-b px-6 py-4">
+        <div className="border-border tems-start flex w-full items-center justify-start border-b px-6 py-4">
           <div>
-            <h1 className="text-3xl font-bold">Vault MCP</h1>
-            <p className="text-muted-foreground">Talk to any MCP Server Securely</p>
+            <h1 className="text-3xl font-bold">Auth for GenAI</h1>
+            <p className="text-muted-foreground">Secure your AI Agents with Auth0</p>
           </div>
           <div className="flex-grow" />
           <LoginOrUser />

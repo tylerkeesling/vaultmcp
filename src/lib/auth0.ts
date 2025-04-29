@@ -22,11 +22,7 @@ export const auth0 = new Auth0Client({
  * @param connection
  * @returns
  */
-export async function getTokenFromVault({
-  connection,
-}: {
-  connection: string;
-}) {
+export async function getTokenFromVault({ connection }: { connection: string }) {
   const session = auth0.getSession();
   if (session === null) {
     throw new Error("Unauthorized");
@@ -35,21 +31,20 @@ export async function getTokenFromVault({
   try {
     const { token } = await auth0.getAccessTokenForConnection({
       connection,
-    });  
+    });
     return token;
-  } catch (err:any) {
+  } catch (err: any) {
     err = err.cause ? err.cause : err;
     if (err instanceof OAuth2Error && err.message === "Identity User not found.") {
-      throw new BotReadableError("User has not connected this account to fix the user should visit [Tools](/toolsets) and connect Google by Karan Chhina");
+      throw new BotReadableError(
+        "User has not connected this account to fix the user should visit [Tools](/toolsets)"
+      );
     }
     throw err;
   }
-
 }
 
-export class BotReadableError extends Error {
-
-}
+export class BotReadableError extends Error {}
 
 export function t<T extends (...args: any[]) => Promise<any>>(t: T): T {
   return (async (...args: Parameters<T>): Promise<ReturnType<T> | string> => {

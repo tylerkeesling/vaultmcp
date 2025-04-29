@@ -32,14 +32,15 @@ export default async function Home() {
     const identity = userObject.identities.find(
       (identity) => identity.connection === connectionName
     );
-    const mapped: ToolSetInfo & ({ installed: false } | { installed: true; profileData: any, user_id: string }) = {
+    const mapped: ToolSetInfo &
+      ({ installed: false } | { installed: true; profileData: any; user_id: string }) = {
       ...info,
       installed: false,
     };
 
     if (identity !== undefined) {
       // @ts-expect-error to be fixed
-      const s = mapped as ToolSetInfo & { installed: true; profileData: any, user_id: string };
+      const s = mapped as ToolSetInfo & { installed: true; profileData: any; user_id: string };
       s.installed = true;
       s.profileData = identity.profileData;
       s.user_id = identity.user_id.toString(); // for github
@@ -50,10 +51,8 @@ export default async function Home() {
   });
 
   const customMcp = ((userObject.app_metadata || {}).custom_mcp || []).map(
-    ({server, connection}: { server: string, connection: string}) => {
-      const identity = userObject.identities.find(
-        (identity) => identity.connection === connection
-      );
+    ({ server, connection }: { server: string; connection: string }) => {
+      const identity = userObject.identities.find((identity) => identity.connection === connection);
 
       const mapped: ToolSetInfo & ({ installed: false } | { installed: true; profileData: any }) = {
         connectionName: connection,
@@ -68,7 +67,7 @@ export default async function Home() {
 
       if (identity !== undefined) {
         // @ts-expect-error to be fixed
-        const s = mapped as ToolSetInfo & { installed: true; profileData: any, user_id: string };
+        const s = mapped as ToolSetInfo & { installed: true; profileData: any; user_id: string };
         s.installed = true;
         s.profileData = identity.profileData;
         s.user_id = identity.user_id;
@@ -81,9 +80,9 @@ export default async function Home() {
   return (
     <main className="mx-auto min-h-screen w-full">
       <div className="flex h-screen w-full flex-col">
-        <div className="border-border mb-8 flex w-full justify-start items-center border-b px-6 py-4">
+        <div className="border-border mb-8 flex w-full items-center justify-start border-b px-6 py-4">
           <div>
-            <h1 className="text-3xl font-bold">Time Keeper | Tools</h1>
+            <h1 className="text-3xl font-bold">Auth for GenAI | Tools</h1>
             <p className="text-muted-foreground">Manage access to built in tools</p>
           </div>
           <div className="flex-grow" />

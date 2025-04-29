@@ -140,7 +140,7 @@ export const get_user_repos = tool({
       }));
 
       return filteredRepos;
-    } catch (error:any) {
+    } catch (error: any) {
       throw new Error("Failed to fetch user repos" + error.toString());
     }
   }),
